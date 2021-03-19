@@ -1,5 +1,5 @@
 #ifdef CUUTIL_DEBUG
-#define CUDA_ERRCHK(x) do { \
+#define CUUTIL_ERRCHK(x) do { \
 	(x); \
 	cudaError_t e = cudaGetLastError(); \
 	if(e != cudaSuccess) { \
@@ -10,5 +10,5 @@
 } while(0)
 #endif
 #ifndef CUUTIL_DEBUG
-#define CUDA_ERRCHK(x) (x)
+#define CUUTIL_ERRCHK(x) (x)
 #endif

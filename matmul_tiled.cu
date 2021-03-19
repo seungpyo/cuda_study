@@ -113,40 +113,31 @@ int main() {
     float * C_cpu = matmalloc_cpu(A_HEIGHT, B_WIDTH);
 
     float *dev_a, *dev_b, *dev_c;
-    CUDA_ERRCHK( cudaMalloc((void **)&dev_a, A_HEIGHT * A_WIDTH * sizeof(float)) );
-    CUDA_ERRCHK( cudaMalloc((void **)&dev_b, B_HEIGHT * B_WIDTH * sizeof(float)) );
-    CUDA_ERRCHK( cudaMalloc((void **)&dev_c, A_HEIGHT * B_WIDTH * sizeof(float)) );
+    CUUTIL_ERRCHK( cudaMalloc((void **)&dev_a, A_HEIGHT * A_WIDTH * sizeof(float)) );
+    CUUTIL_ERRCHK( cudaMalloc((void **)&dev_b, B_HEIGHT * B_WIDTH * sizeof(float)) );
+    CUUTIL_ERRCHK( cudaMalloc((void **)&dev_c, A_HEIGHT * B_WIDTH * sizeof(float)) );
 
-    begin = std::chrono::steady_clock::now();
     matfill(A, A_HEIGHT, A_WIDTH, 1.0f, DEVICE_CPU);
     matfill(B, B_HEIGHT, B_WIDTH, 2.0f, DEVICE_CPU);
     matfill(C, A_HEIGHT, B_WIDTH, 1.0f, DEVICE_CPU);
-    end = std::chrono::steady_clock::now();
-    std::cout << "Elapsed time for matfill_cpu(A, B, C) = " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << "[ns]" << std::endl;
-
-    begin = std::chrono::steady_clock::now();
+    
     matfill(dev_a, A_HEIGHT, A_WIDTH, 1.0f, DEVICE_GPU);
     matfill(dev_b, B_HEIGHT, B_WIDTH, 2.0f, DEVICE_GPU);
     matfill(dev_c, A_HEIGHT, B_WIDTH, 3.0f, DEVICE_GPU);
-    end = std::chrono::steady_clock::now();
-    std::cout << "Elapsed time for matfill_gpu(A, B, C) = " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << "[ns]" << std::endl;
-    
-
-
     
     begin = std::chrono::steady_clock::now();
     matmul(C_cpu, A, B, A_HEIGHT, B_WIDTH, A_WIDTH, DEVICE_CPU);
     end = std::chrono::steady_clock::now();
-    std::cout << "Elapsed time for matmul_cpu = " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << "[ns]" << std::endl;
+    std::cout << "Elapsed time for" << "matmul_cpu"<< ": " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << "[ns]" << std::endl;
 
     begin = std::chrono::steady_clock::now();
     matmul(dev_c, dev_a, dev_b, A_HEIGHT, B_WIDTH, A_WIDTH, DEVICE_GPU);
     end = std::chrono::steady_clock::now();
-    std::cout << "Elapsed time for matmul_gpu = " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << "[ns]" << std::endl;
+    std::cout << "Elapsed time for" << "matmul_gpu" << ": " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() << "[ns]" << std::endl;
     
-    CUDA_ERRCHK( cudaMemcpy(A, dev_a, A_HEIGHT * A_WIDTH * sizeof(float), cudaMemcpyDeviceToHost) );
-    CUDA_ERRCHK( cudaMemcpy(B, dev_b, B_HEIGHT * B_WIDTH * sizeof(float), cudaMemcpyDeviceToHost) );
-    CUDA_ERRCHK( cudaMemcpy(C, dev_c, A_HEIGHT * B_WIDTH * sizeof(float), cudaMemcpyDeviceToHost) );
+    CUUTIL_ERRCHK( cudaMemcpy(A, dev_a, A_HEIGHT * A_WIDTH * sizeof(float), cudaMemcpyDeviceToHost) );
+    CUUTIL_ERRCHK( cudaMemcpy(B, dev_b, B_HEIGHT * B_WIDTH * sizeof(float), cudaMemcpyDeviceToHost) );
+    CUUTIL_ERRCHK( cudaMemcpy(C, dev_c, A_HEIGHT * B_WIDTH * sizeof(float), cudaMemcpyDeviceToHost) );
     
     /*
     cout << "After matmul process" << endl;
@@ -160,9 +151,9 @@ int main() {
         cout << "Test passed" << endl;
     }
 
-    CUDA_ERRCHK( cudaFree((void *)dev_a) );
-    CUDA_ERRCHK( cudaFree((void *)dev_b) );
-    CUDA_ERRCHK( cudaFree((void *)dev_c) );
+    CUUTIL_ERRCHK( cudaFree((void *)dev_a) );
+    CUUTIL_ERRCHK( cudaFree((void *)dev_b) );
+    CUUTIL_ERRCHK( cudaFree((void *)dev_c) );
     free(A);
     free(B);
     free(C);
