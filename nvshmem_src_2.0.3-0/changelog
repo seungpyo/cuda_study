@@ -1,0 +1,46 @@
+===============================================================================
+				Changes in 2.0.3
+===============================================================================
+
+# Added the teams and team-based collectives APIs from OpenSHMEM 1.5.
+# Added support to use the NVIDIA Collective Communication Library (NCCL) for
+optimized NVSHMEM host and on-stream collectives.
+# Added support for RDMA over Converged Ethernet (RoCE) networks.
+# Added support for PMI-2 to enable an NVSHMEM job launch with srun/SLURM. 
+# Added support for PMIx to enable an NVSHMEM job launch with PMIx-compatible
+launchers, such as Slurm and Open MPI.
+# Uniformly reformatted the perftest benchmark output.
+# Added support for the putmem_signal and signal_wait_until APIs.
+# Improved support for single-node environments without InfiniBand.
+# Fixed a bug that occurred when large numbers of fetch atomic operations were
+performed on InfiniBand.
+# Improved topology awareness in NIC-to-GPU assignments for DGX A100 systems.
+
+===============================================================================
+				Changes in 1.1.3
+===============================================================================
+
+# Implements nvshmem_<type>_put_signal API from OpenSHMEM 1.5
+# Adds nvshmemx_signal_op API
+# Optimizes implementation of signal set operation over P2P connected GPUs
+# Optimizes performance of nvshmem_fence() function
+# Optimizes latency of NVSHMEM atomics API
+# Fixes bug in nvshmem_ptr API
+# Fixes bug in implementation of host-side strided transfer (iput, iget, etc.) API
+# Fixes bug in on-stream reduction for `long long` datatype
+# Fixes hang during nvshmem barrier collective operation
+# Fixes __device__ nvshmem_quiet() to also do quiet on IB ops to self
+# Fixes bug in fetch atomic and g implementation 
+
+===============================================================================
+				Changes in 1.0.1
+===============================================================================
+
+# Combines the memory of multiple GPUs into a partitioned global address space 
+that’s accessed through NVSHMEM APIs.
+# Includes a low-overhead, in-kernel communication API for use by GPU threads.
+# Includes stream-based and CPU-initiated communication APIs.  
+# Supports peer-to-peer communication using NVIDIA NVLink and PCI Express and for 
+GPU clusters using NVIDIA Mellanox® InfiniBand. 
+# Supports x86 and POWER9 processors.  
+# Is interoperable with MPI and other OpenSHMEM implementations.
