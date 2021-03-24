@@ -9,14 +9,99 @@
 #include <mutex>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/wait.h>
+#include <sys/mman.h>
+#include <atomic>
 #include "cuda.h"
 
 void panic(const char * msg) {
     perror(msg);
     exit(EXIT_FAILURE);
+}
+static const char * barrier_name = "MemMapManagerBarrier";
+struct sockaddr_un server_addr;
+
+typedef struct sharedMemoryInfo_st {
+    void *addr;
+    size_t size;
+    int shmFd;
+} sharedMemoryInfo;
+sharedMemoryInfo shmInfo;
+
+int sharedMemoryCreate(const char *name, size_t sz, sharedMemoryInfo *info) {
+  int status = 0;
+
+  info->size = sz;
+
+  info->shmFd = shm_open(name, O_RDWR | O_CREAT, 0777);
+  if (info->shmFd < 0) {
+    return errno;
+  }
+
+  status = ftruncate(info->shmFd, sz);
+  if (status != 0) {
+    return status;
+  }
+
+  info->addr = mmap(0, sz, PROT_READ | PROT_WRITE, MAP_SHARED, info->shmFd, 0);
+  if (info->addr == NULL) {
+    return errno;
+  }
+
+  return 0;
+}
+
+int sharedMemoryOpen(const char *name, size_t sz, sharedMemoryInfo *info) {
+  info->size = sz;
+
+  info->shmFd = shm_open(name, O_RDWR, 0777);
+  if (info->shmFd < 0) {
+    return errno;
+  }
+
+  info->addr = mmap(0, sz, PROT_READ | PROT_WRITE, MAP_SHARED, info->shmFd, 0);
+  if (info->addr == NULL) {
+    return errno;
+  }
+
+  return 0;
+}
+
+void sharedMemoryClose(sharedMemoryInfo *info) {
+  if (info->addr) {
+    munmap(info->addr, info->size);
+  }
+  if (info->shmFd) {
+    close(info->shmFd);
+  }
+}
+
+typedef struct shmStruct_st {
+  size_t nprocesses;
+  int barrier;
+  int sense;
+} shmStruct;
+#define cpu_atomic_add32(a, x) __sync_add_and_fetch(a, x)
+static void barrierWait(volatile int *barrier, volatile int *sense,
+                        unsigned int n) {
+  int count;
+  // Check-in
+  
+  count = cpu_atomic_add32(barrier, 1);
+  if (count == n) {  // Last one in
+    *sense = 1;
+  }
+  while (!*sense);
+  // Check-out
+  count = cpu_atomic_add32(barrier, -1);
+  if (count == 0) {  // Last one out
+    *sense = 0;
+  }
+  while (*sense);
 }
 
 class ProcessInfo {
@@ -26,6 +111,9 @@ class ProcessInfo {
             bool ret = true;
             ret = ret && (pid == other.pid);
             return ret;
+        }
+        void AddressString(char *addrStr, size_t max_len) {
+            snprintf(addrStr, max_len, "%d_ipc", pid);
         }
 };
 enum MemMapCmd {
@@ -95,28 +183,39 @@ MemMapManager::MemMapManager() {
     
     unlink(MemMapManager::endpointName);
     
-    struct sockaddr_un server_sun;
+    
     if((ipc_sock_fd_ = socket(AF_UNIX, SOCK_DGRAM, 0)) == -1) {
         panic("MemMapManager: Failed to open server socket");
     }
-    bzero(&server_sun, sizeof(server_sun));
-    server_sun.sun_family = AF_UNIX;
+    bzero(&server_addr, sizeof(server_addr));
+    server_addr.sun_family = AF_UNIX;
     size_t name_len = strlen(MemMapManager::endpointName);
-    if (name_len >= sizeof(server_sun.sun_path)) {
+    if (name_len >= sizeof(server_addr.sun_path)) {
         panic("MemMapManager: Name is too long");
     }
-    strncpy(server_sun.sun_path, MemMapManager::endpointName, name_len);
+    strncpy(server_addr.sun_path, MemMapManager::endpointName, name_len);
 
-    if (bind(ipc_sock_fd_, (struct sockaddr *)&server_sun, SUN_LEN(&server_sun)) < 0) {
+    if (bind(ipc_sock_fd_, (struct sockaddr *)&server_addr, SUN_LEN(&server_addr)) < 0) {
         panic("MemMapManager::MemMapManager: Binding IPC server socket failed");
     }
+
+    if (sharedMemoryOpen(barrier_name, sizeof(shmStruct),  &shmInfo) < 0) {
+        panic("main, sharedMemoryOpen");
+    }
+    volatile shmStruct * shm = (volatile shmStruct *)shmInfo.addr;
+    shm->barrier = 0;
+    shm->nprocesses = 2;
+    barrierWait(&shm->barrier, &shm->sense, (unsigned int)(shm->nprocesses));
 
     while(true) {
         MemMapRequest req;
         MemMapResponse res;
-        if (recv(ipc_sock_fd_, &req, sizeof(req), 0) < 0) {
+        struct sockaddr_un client_addr;
+        socklen_t client_addr_len = sizeof(client_addr);
+        if (recvfrom(ipc_sock_fd_, (void *)&req, sizeof(req), 0, (struct sockaddr *)&client_addr, &client_addr_len) < 0) {
             panic("MemMapManager::MemMapManager: failed to receive IPC message");
         }
+        std::cout << "Received : {  cmd: " << req.cmd << "}" << std::endl;
         switch (req.cmd) {
             case REGISTER:
                 res.status = ACK;
@@ -126,7 +225,8 @@ MemMapManager::MemMapManager() {
                 res.status = NYI;
                 break;
         }
-        if (send(ipc_sock_fd_, &res, sizeof(res), 0) < 0) {
+        
+        if (sendto(ipc_sock_fd_, (const void *)&res, sizeof(res), 0, (struct sockaddr *)&client_addr, sizeof(client_addr)) < 0) {
             panic("MemMapManager::MemMapManager: failed to send IPC message");
         }
     }
@@ -144,18 +244,17 @@ MemMapManager::~MemMapManager() {
 void MemMapManager::Subscribe(ProcessInfo &pInfo) {
 
     int sock_fd = 0;
-    struct sockaddr_un client_sun;
+    struct sockaddr_un client_addr;
 
     if ((sock_fd = socket(AF_UNIX, SOCK_DGRAM, 0)) == -1) {
         panic("MemMapManager::Subscribe failed to open socket");
     }
 
-    bzero(&client_sun, sizeof(client_sun));
-    client_sun.sun_family = AF_UNIX;
-    strcpy(client_sun.sun_path, MemMapManager::endpointName);
-    std::cout << "pid " << getpid() << " binding..." << std::endl;
-    if (bind(sock_fd, (struct sockaddr *)&client_sun, SUN_LEN(&client_sun)) < 0) {
-        panic(client_sun.sun_path);
+    bzero(&client_addr, sizeof(client_addr));
+    client_addr.sun_family = AF_UNIX;
+    pInfo.AddressString(client_addr.sun_path, 100);
+
+    if (bind(sock_fd, (struct sockaddr *)&client_addr, SUN_LEN(&client_addr)) < 0) {
         panic("MemMapManager::Subscribe failed to bind client socket");
     }
 
@@ -163,10 +262,11 @@ void MemMapManager::Subscribe(ProcessInfo &pInfo) {
     req.src = pInfo;
     req.cmd = REGISTER;
     MemMapResponse res;
-    if (send(sock_fd, &req, sizeof(req), 0) < 0) {
+    if (sendto(sock_fd, (const void *)&req, sizeof(req), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         panic("MemMapManager::Subscribe failed to send subscribe request");
     }
-    if (recv(sock_fd, &res, sizeof(res), 0) < 0) {
+    socklen_t server_addr_len = sizeof(server_addr);
+    if (recvfrom(sock_fd, (void *)&res, sizeof(res), 0, (struct sockaddr *)&server_addr, &server_addr_len) < 0) {
         panic("MemMapManager::Subscribe failed to receive subscribe result");
     }
     if (res.status != ACK) {
@@ -198,6 +298,7 @@ std::string MemMapManager::DebugString() const {
     return dbg;
 }
 
+
 void test_singleton(void) {
     MemMapManager *m3 = MemMapManager::Instance();
     MemMapManager *m3_dup = MemMapManager::Instance();
@@ -206,29 +307,39 @@ void test_singleton(void) {
     std::cout << m3 << ", " << m3_dup << std::endl;
 }
 
+
+
 int main() {
     // Ensure that MemMapManager instance exists before forking.
+    
     
 
     pid_t pid;
     if ((pid = fork()) == 0) {
-        // child process as a demo client.
+        // And then, launch client process.
+        // sharedMemoryInfo shmInfo;
         ProcessInfo pInfo;
         pInfo.pid = getpid();
-        try {
-            // sleep(3);
-            MemMapManager::Subscribe(pInfo);
+
+        if (sharedMemoryOpen(barrier_name, sizeof(shmStruct),  &shmInfo) < 0) {
+            panic("main, sharedMemoryOpen");
         }
-        catch(char const * msg) {
-            std::cout << msg << std::endl;
-        }
+        volatile shmStruct * shm = (volatile shmStruct *)shmInfo.addr;
+        shm->nprocesses = 2;
+        barrierWait(&shm->barrier, &shm->sense, (unsigned int)(shm->nprocesses));
+
+        MemMapManager::Subscribe(pInfo);
+        sharedMemoryClose(&shmInfo);
     } else {
         // parent process as a demo server.
+        
+        volatile shmStruct * shm = (volatile shmStruct *)shmInfo.addr;
+        MemMapManager *m3 = MemMapManager::Instance();
+        
+        sharedMemoryClose(&shmInfo);
+        
     }
-    try {
-        MemMapManager* m3 = MemMapManager::Instance();
-    } catch(char const * msg) {
-        std::cout << msg << std::endl;
-    }
+    int wait_status;
+    wait(&wait_status);
     return 0;
 }
