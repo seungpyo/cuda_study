@@ -5,6 +5,8 @@ MemMapManager * MemMapManager::instance_ = nullptr;
 std::once_flag MemMapManager::singletonFlag_;
 const char MemMapManager::name[128] = "MemMapManager";
 const char MemMapManager::endpointName[128] = "MemMapManager_Server_EndPoint";
+CUmemAllocationHandleType ipcHandleTypeFlag =
+    CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR;
 
 MemMapManager::MemMapManager() {
     
@@ -114,7 +116,10 @@ MemMapStatusCode MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd,
     MemMapRequest req;
     req.src = pInfo;
     req.cmd = CMD_ALLOCATE;
+    req.alignment = 1024;
+    req.size = num_bytes;
     MemMapResponse res = MemMapManager::Request(sock_fd, req, &server_addr);
+    *shHandle = res.shareableHandle;
     return res.status;
 
 }
@@ -122,8 +127,31 @@ MemMapStatusCode MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd,
 
 
 shareable_handle_t MemMapManager::Allocate(ProcessInfo &pInfo, size_t alignment, size_t num_bytes) {
+    CUmemAllocationProp prop = {};
+    prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
+    prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+    // Use GPU 0 as Memory server device, for now.
+    prop.location.id = devices_[0];
+    prop.requestedHandleTypes = ipcHandleTypeFlag;
+    size_t granularity = 0;
+    CUUTIL_ERRCHK(cuMemGetAllocationGranularity(
+        &granularity, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM));
     
-    return (shareable_handle_t)nullptr;
+    if (num_bytes % granularity) {
+        /*
+        std::cout << "num_bytes = " << num_bytes << std::endl;
+        std::cout << "granularity = " << granularity << std::endl;
+    panic(
+        "Allocation size is not a multiple of minimum supported granularity "
+        "for this device. Exiting...\n");]
+        */
+       num_bytes += (granularity - (num_bytes % granularity));
+    }
+    CUmemGenericAllocationHandle allocHandle;
+    shareable_handle_t shHandle;
+    CUUTIL_ERRCHK( cuMemCreate(&allocHandle, num_bytes, &prop, 0) );
+    CUUTIL_ERRCHK( cuMemExportToShareableHandle((void *)&shHandle, allocHandle, ipcHandleTypeFlag, 0) );
+    return shHandle;
 }
 
 std::string MemMapManager::DebugString() const {

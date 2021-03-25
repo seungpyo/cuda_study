@@ -52,6 +52,8 @@ int main() {
             std::cout << status << std::endl;
             panic("Failed to RequestAllocate M3");
         }
+        printf("M3 allocated shareable handle %p\n", shHandle);
+        
 
         MemMapRequest req;
         req.src = pInfo;
