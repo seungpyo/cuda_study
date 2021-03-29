@@ -14,6 +14,7 @@ int main() {
     // Ensure that MemMapManager instance exists before forking.
     pid_t pid;
     if ((pid = fork()) == 0) {
+        CUUTIL_ERRCHK(cuInit(0));
         // And then, launch client process.
         // sharedMemoryInfo shmInfo;
         ProcessInfo pInfo;
@@ -42,17 +43,24 @@ int main() {
         volatile shmStruct * shm = (volatile shmStruct *)shmInfo.addr;
         
         // barrierWait(&shm->barrier, &shm->sense, 2);
-        waitServerInit(&shm->sense, false);
+        std::cout << "Waiting for server init..." << std::endl;
+        waitServerInit(&shm->sense, &shm->counter, false);
+        std::cout << "registering client..." << std::endl;
         if(MemMapManager::RequestRegister(pInfo, sock_fd) != STATUSCODE_ACK) {
             panic("Failed to RequestRegister M3");
         }
-        shareable_handle_t shHandle;
-        MemMapStatusCode status;
-        if((status = MemMapManager::RequestAllocate(pInfo, sock_fd, 0, 1024, &shHandle)) != STATUSCODE_ACK) {
-            std::cout << status << std::endl;
-            panic("Failed to RequestAllocate M3");
+
+        
+        for(int t = 0; t < 10; ++t) {
+            shareable_handle_t shHandle;
+            MemMapStatusCode status;
+            if((status = MemMapManager::RequestAllocate(pInfo, sock_fd, 0, 1024, &shHandle)) != STATUSCODE_ACK) {
+                std::cout << status << std::endl;
+                panic("Failed to RequestAllocate M3");
+            }
+            printf("M3 allocated shareable handle %p\n", shHandle);
         }
-        printf("M3 allocated shareable handle %p\n", shHandle);
+        
         
 
         MemMapRequest req;

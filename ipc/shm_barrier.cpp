@@ -72,14 +72,16 @@ void barrierWait(volatile int *barrier, volatile int *sense, unsigned int n) {
   std::cout << getpid() << " exits barrierWait" << std::endl;
 }
 */
-void waitServerInit(volatile int *sense, bool isServer) {
-  if (!isServer) {
-    *sense = 0;
-  }
+void waitServerInit(volatile int *sense, volatile int * counter, bool isServer) {
   if (isServer) {
     *sense = 1;
   } else {
-    while(!*sense);
+    cpu_atomic_add32(counter, 1);
+  }
+  while(!*sense);
+  if (!isServer) {
+    cpu_atomic_add32(counter, -1);
+    while(*counter);
     *sense = 0;
   }
 }

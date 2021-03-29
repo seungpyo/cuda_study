@@ -38,11 +38,11 @@ void sharedMemoryClose(sharedMemoryInfo *info);
 
 typedef struct shmStruct_st {
   size_t nprocesses;
-  int barrier;
+  int counter;
   int sense;
 } shmStruct;
 
 #define cpu_atomic_add32(a, x) __sync_add_and_fetch(a, x)
 
 // void barrierWait(volatile int *barrier, volatile int *sense, unsigned int n);
-void waitServerInit(volatile int *sense, bool isServer);
+void waitServerInit(volatile int *sense, volatile int *counter, bool isServer);

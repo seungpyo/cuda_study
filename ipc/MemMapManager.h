@@ -26,6 +26,7 @@
 class ProcessInfo {
     public:
         pid_t pid;
+        int device;
         bool operator ==(const ProcessInfo &other) const {
             bool ret = true;
             ret = ret && (pid == other.pid);
@@ -64,6 +65,8 @@ typedef uintptr_t shareable_handle_t;
 typedef struct MemMapResponseSt {
     MemMapStatusCode status;
     shareable_handle_t shareableHandle;
+    size_t roundedSize;
+    CUdeviceptr d_ptr;
 } MemMapResponse;
 
 
@@ -99,6 +102,8 @@ class MemMapManager {
     private:
         MemMapManager();
         void Server();
+        size_t GetRoundedAllocationSize(size_t num_bytes);
+
         static MemMapManager * instance_;
         static std::once_flag singletonFlag_;
         int ipc_sock_fd_;

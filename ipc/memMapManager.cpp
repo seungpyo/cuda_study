@@ -47,7 +47,7 @@ MemMapManager::MemMapManager() {
     }
 
     // barrierWait(&shm->barrier, &shm->sense,2);
-    waitServerInit(&shm->sense, true);
+    waitServerInit(&shm->sense, &shm->counter, true);
     Server();
 }
 
@@ -72,7 +72,8 @@ void MemMapManager::Server() {
                 break;
             case CMD_ALLOCATE:
                 res.status = STATUSCODE_ACK;
-                res.shareableHandle = Allocate(req.src, req.alignment, req.size);
+                res.roundedSize = GetRoundedAllocationSize(req.size);
+                res.shareableHandle = Allocate(req.src, req.alignment, res.roundedSize);
                 break;
             default:
                 res.status = STATUSCODE_NYI;
@@ -118,15 +119,40 @@ MemMapStatusCode MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd,
     req.cmd = CMD_ALLOCATE;
     req.alignment = 1024;
     req.size = num_bytes;
+
     MemMapResponse res = MemMapManager::Request(sock_fd, req, &server_addr);
     *shHandle = res.shareableHandle;
-    return res.status;
+    size_t roundedSize = res.roundedSize;
 
+    CUmemAccessDesc accessDescriptor;
+    accessDescriptor.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+    accessDescriptor.location.id = pInfo.device;
+    accessDescriptor.flags = CU_MEM_ACCESS_FLAGS_PROT_READWRITE;
+
+    std::cout << getpid() << " received status code " << res.status << std::endl;
+
+    CUmemGenericAllocationHandle allocHandle = 0;
+    CUUTIL_ERRCHK(cuMemImportFromShareableHandle(
+        &allocHandle, (void *)(uintptr_t)shHandle, ipcHandleTypeFlag));
+
+    std::cout << getpid() << " imported " << *shHandle << " as " << allocHandle << std::endl;
+
+    res.d_ptr = (CUdeviceptr)nullptr;
+    CUUTIL_ERRCHK(cuMemAddressReserve(&res.d_ptr, roundedSize, alignment, 0, 0));
+
+    std::cout << getpid() << " reserved d_ptr = " << res.d_ptr << std::endl;
+
+    CUUTIL_ERRCHK(cuMemMap(res.d_ptr, roundedSize, 0, allocHandle, 0));
+
+    std::cout << getpid() << " d_ptr is mapped" << std::endl;
+    
+    CUUTIL_ERRCHK(cuMemRelease(allocHandle));
+
+    std::cout << getpid() << "released allocHandle" << std::endl;
+    return res.status;
 }
 
-
-
-shareable_handle_t MemMapManager::Allocate(ProcessInfo &pInfo, size_t alignment, size_t num_bytes) {
+size_t MemMapManager::GetRoundedAllocationSize(size_t num_bytes) {
     CUmemAllocationProp prop = {};
     prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
     prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
@@ -136,23 +162,33 @@ shareable_handle_t MemMapManager::Allocate(ProcessInfo &pInfo, size_t alignment,
     size_t granularity = 0;
     CUUTIL_ERRCHK(cuMemGetAllocationGranularity(
         &granularity, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM));
-    
     if (num_bytes % granularity) {
-        /*
-        std::cout << "num_bytes = " << num_bytes << std::endl;
-        std::cout << "granularity = " << granularity << std::endl;
-    panic(
-        "Allocation size is not a multiple of minimum supported granularity "
-        "for this device. Exiting...\n");]
-        */
        num_bytes += (granularity - (num_bytes % granularity));
     }
+    return num_bytes;
+}
+
+
+shareable_handle_t MemMapManager::Allocate(ProcessInfo &pInfo, size_t alignment, size_t num_bytes) {
+    CUmemAllocationProp prop = {};
+    prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
+    prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+    // Use GPU 0 as Memory server device, for now.
+    prop.location.id = devices_[0];
+    prop.requestedHandleTypes = ipcHandleTypeFlag;
     CUmemGenericAllocationHandle allocHandle;
     shareable_handle_t shHandle;
     CUUTIL_ERRCHK( cuMemCreate(&allocHandle, num_bytes, &prop, 0) );
     CUUTIL_ERRCHK( cuMemExportToShareableHandle((void *)&shHandle, allocHandle, ipcHandleTypeFlag, 0) );
+    CUUTIL_ERRCHK( cuMemRelease(allocHandle) );
     return shHandle;
 }
+
+void MemMapManager::DeAllocate(ProcessInfo &pInfo, shareable_handle_t shHandle) {
+    return;
+}
+
+
 
 std::string MemMapManager::DebugString() const {
     std::string dbg;
@@ -167,6 +203,7 @@ std::string MemMapManager::DebugString() const {
 
 
 MemMapResponse MemMapManager::Request(int sock_fd, MemMapRequest req, struct sockaddr_un * remote_addr) {
+    std::cout << "Request command = " << req.cmd << std::endl;
     MemMapResponse res;
     res.status = STATUSCODE_ACK;
     socklen_t remote_addr_len = SUN_LEN(remote_addr);
