@@ -15,6 +15,12 @@ int main() {
     pid_t pid;
     if ((pid = fork()) == 0) {
         CUUTIL_ERRCHK(cuInit(0));
+        CUcontext ctx;
+        CUdevice device;
+        
+        CUstream stream_h2d, stream_d2h;
+        int multiProcessorCount;
+
         // And then, launch client process.
         // sharedMemoryInfo shmInfo;
         ProcessInfo pInfo;
@@ -32,6 +38,7 @@ int main() {
         client_addr.sun_family = AF_UNIX;
         pInfo.AddressString(client_addr.sun_path, 100);
 
+        
         if (bind(sock_fd, (struct sockaddr *)&client_addr, SUN_LEN(&client_addr)) < 0) {
             panic("MemMapManager::RequestRegister failed to bind client socket");
         }
@@ -41,24 +48,42 @@ int main() {
             panic("main, sharedMemoryOpen");
         }
         volatile shmStruct * shm = (volatile shmStruct *)shmInfo.addr;
-        
-        // barrierWait(&shm->barrier, &shm->sense, 2);
-        std::cout << "Waiting for server init..." << std::endl;
         waitServerInit(&shm->sense, &shm->counter, false);
-        std::cout << "registering client..." << std::endl;
-        if(MemMapManager::RequestRegister(pInfo, sock_fd) != STATUSCODE_ACK) {
+
+        pInfo.device_ordinal = 0;
+        CUUTIL_ERRCHK(cuDeviceGet(&pInfo.device, pInfo.device_ordinal));
+        CUUTIL_ERRCHK(cuCtxCreate(&pInfo.ctx, 0, pInfo.device));
+        MemMapResponse res;
+        res = MemMapManager::RequestRegister(pInfo, sock_fd);
+        if(res.status != STATUSCODE_ACK) {
             panic("Failed to RequestRegister M3");
         }
+        pInfo = res.dst;
 
         
+        CUUTIL_ERRCHK(cuStreamCreate(&stream_h2d, CU_STREAM_NON_BLOCKING));
+        CUUTIL_ERRCHK(cuStreamCreate(&stream_d2h, CU_STREAM_NON_BLOCKING));
+
+        std::vector<CUdeviceptr> d_ptr;
         for(int t = 0; t < 10; ++t) {
-            shareable_handle_t shHandle;
-            MemMapStatusCode status;
-            if((status = MemMapManager::RequestAllocate(pInfo, sock_fd, 0, 1024, &shHandle)) != STATUSCODE_ACK) {
-                std::cout << status << std::endl;
+            MemMapResponse res;
+            res = MemMapManager::RequestRoundedAllocationSize(pInfo, sock_fd, 32*1024);
+            if (res.status != STATUSCODE_ACK) {
+                panic("Failed to get rounded allocation size");
+            }
+            res =  MemMapManager::RequestAllocate(pInfo, sock_fd, 1024, res.roundedSize);
+            if(res.status != STATUSCODE_ACK) {
+                std::cout << res.status << std::endl;
                 panic("Failed to RequestAllocate M3");
             }
-            printf("M3 allocated shareable handle %p\n", shHandle);
+            d_ptr.push_back(res.d_ptr);
+            auto addr = d_ptr[t];
+            char test_string[128] = "can you see me?";
+            char recv_string[128];
+            CUUTIL_ERRCHK(cuMemcpyHtoD(addr, test_string, 128));
+            CUUTIL_ERRCHK(cuMemcpyDtoH(recv_string, addr, 128));
+            std::cout << "test_string: " << test_string << std::endl;
+            std::cout << "recv_string: " << recv_string << std::endl;
         }
         
         
@@ -66,7 +91,7 @@ int main() {
         MemMapRequest req;
         req.src = pInfo;
         req.cmd = CMD_HALT;
-        MemMapResponse res = MemMapManager::Request(sock_fd, req, &server_addr);
+        res = MemMapManager::Request(sock_fd, req, &server_addr);
         if (res.status != STATUSCODE_ACK) {
             panic("Failed to halt M3 instance");
         }
