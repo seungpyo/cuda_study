@@ -1,5 +1,4 @@
 #include "MemMapManager.h"
-// #include "shm_barrier.h"
 
 MemMapManager * MemMapManager::instance_ = nullptr;
 std::once_flag MemMapManager::singletonFlag_;
@@ -56,6 +55,7 @@ MemMapManager::MemMapManager() {
 void MemMapManager::Server() {
 
     bool halt = false;
+    M3InternalErrorType m3Err;
     CUmemGenericAllocationHandle allocHandle;
     while(!halt) {
         MemMapRequest req;
@@ -80,7 +80,11 @@ void MemMapManager::Server() {
                 // We assuem that client request CMD_GETROUNDEDALLOCATIONSIZE before CMD_ALLOCATE.
                 // Thus, no size rounding is provided in this command.
                 res.status = STATUSCODE_ACK;
-                res.shareableHandle = Allocate(req.src, req.alignment, req.size);
+                m3Err = Allocate(req.src, req.alignment, req.size, &res.shareableHandle);
+                if (m3Err != M3INTERNAL_OK) {
+                    printf("M3 Internal Error Code %d\n", m3Err);
+                    panic("Server failed to Allocate()");
+                }
                 break;
             case CMD_GETROUNDEDALLOCATIONSIZE:
                 res.status = STATUSCODE_ACK;
@@ -102,6 +106,188 @@ void MemMapManager::Server() {
         }
         
     }
+
+}
+
+
+MemMapManager::~MemMapManager() {
+
+    close(ipc_sock_fd_);
+    unlink(MemMapManager::endpointName);
+
+}
+
+
+MemMapResponse MemMapManager::RequestRegister(ProcessInfo &pInfo, int sock_fd) {
+
+    MemMapRequest req;
+    req.src = pInfo;
+    req.cmd = CMD_REGISTER;
+    MemMapResponse res = MemMapManager::Request(sock_fd, req, &server_addr);
+    return res;
+
+}
+
+M3InternalErrorType MemMapManager::Register(ProcessInfo &pInfo) {
+
+    auto processIterator = std::find(subscribers_.begin(), subscribers_.end(), pInfo);
+    if (processIterator != subscribers_.end()) {
+        // Process is already subscribing memory server. Ignored.
+        return M3INTERNAL_DUPLICATE_REGISTER;
+    }
+    subscribers_.push_back(pInfo);
+    return M3INTERNAL_OK;
+}
+
+MemMapResponse MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd, size_t alignment, size_t num_bytes) {
+    
+    MemMapRequest req;
+    req.src = pInfo;
+    req.cmd = CMD_ALLOCATE;
+    req.alignment = 1024;
+    req.size = num_bytes;
+
+    MemMapResponse res = MemMapManager::Request(sock_fd, req, &server_addr);
+
+    CUmemAccessDesc accessDescriptor;
+    accessDescriptor.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+    accessDescriptor.location.id = pInfo.device_ordinal;
+    accessDescriptor.flags = CU_MEM_ACCESS_FLAGS_PROT_READWRITE;
+
+    CUmemGenericAllocationHandle allocHandle;
+    CUUTIL_ERRCHK(cuMemImportFromShareableHandle(
+        &allocHandle, (void *)(uintptr_t)res.shareableHandle, CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR));
+
+    res.d_ptr = (CUdeviceptr)nullptr;
+
+    CUUTIL_ERRCHK(cuMemAddressReserve(&res.d_ptr, req.size, alignment, 0, 0));
+    CUUTIL_ERRCHK(cuMemMap(res.d_ptr, req.size, 0, allocHandle, 0));
+    CUUTIL_ERRCHK(cuMemRelease(allocHandle));
+    CUUTIL_ERRCHK(cuMemSetAccess(res.d_ptr, num_bytes, &accessDescriptor, 1));
+
+    return res;
+}
+
+MemMapResponse MemMapManager::RequestRoundedAllocationSize(ProcessInfo &pInfo, int sock_fd, size_t num_bytes) {
+
+    MemMapRequest req;
+    req.src = pInfo;
+    req.cmd = CMD_GETROUNDEDALLOCATIONSIZE;
+    req.size = num_bytes;
+    MemMapResponse res = MemMapManager::Request(sock_fd, req, &server_addr);
+    return res;
+
+}
+
+size_t MemMapManager::GetRoundedAllocationSize(size_t num_bytes) {
+
+    CUmemAllocationProp prop = {};
+    prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
+    prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+    // Use GPU 0 as Memory server device, for now.
+    prop.location.id = devices_[0];
+    prop.requestedHandleTypes = CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR;
+    size_t granularity = 0;
+    CUUTIL_ERRCHK(cuMemGetAllocationGranularity(
+        &granularity, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM));
+    if (num_bytes % granularity) {
+       num_bytes += (granularity - (num_bytes % granularity));
+    }
+
+    return num_bytes;
+
+}
+
+
+M3InternalErrorType MemMapManager::Allocate(ProcessInfo &pInfo, size_t alignment, size_t num_bytes, shareable_handle_t * shHandle) {
+
+    CUmemAllocationProp prop = {};
+    prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
+    prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
+    // Use GPU 0 as Memory server device, for now.
+    prop.location.id = devices_[0];
+    prop.requestedHandleTypes = CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR;
+    CUmemGenericAllocationHandle allocHandle;
+    CUUTIL_ERRCHK( cuMemCreate(&allocHandle, num_bytes, &prop, 0) );
+    CUUTIL_ERRCHK( cuMemExportToShareableHandle((void *)shHandle, allocHandle, CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR, 0) );
+    CUUTIL_ERRCHK( cuMemRelease(allocHandle) );
+
+    return M3INTERNAL_OK;
+
+}
+
+MemMapResponse MemMapManager::RequestDeAllocate(ProcessInfo &pInfo, int sock_fd, shareable_handle_t shHandle) {
+    MemMapRequest req;
+    req.src = pInfo;
+    req.cmd = CMD_DEALLOCATE;
+    req.shareableHandle = shHandle;
+    MemMapResponse res;
+    res = Request(sock_fd, req, &server_addr);
+    return res;
+}
+
+M3InternalErrorType MemMapManager::DeAllocate(ProcessInfo &pInfo, shareable_handle_t shHandle) {
+    return M3INTERNAL_NYI;
+}
+
+
+
+std::string MemMapManager::DebugString() const {
+
+    std::string dbg;
+    dbg.append("name: ");
+    dbg.append(MemMapManager::name);
+    dbg.append(", ipc_name: ");
+    dbg.append(MemMapManager::endpointName);
+    dbg.append(", ipc_sock_fd: ");
+    dbg.append(std::to_string(ipc_sock_fd_));
+
+    return dbg;
+
+}
+
+
+MemMapResponse MemMapManager::Request(int sock_fd, MemMapRequest req, struct sockaddr_un * remote_addr) {
+    
+    sem_t * sem;
+    sem = sem_open(MemMapManager::barrierName, O_CREAT, S_IRUSR|S_IWUSR, 0);
+    if (sem == SEM_FAILED) {
+        panic("Request: Failed to open semaphore");
+    }
+    sem_wait(sem);
+
+    MemMapResponse res;
+    res.status = STATUSCODE_ACK;
+    
+    socklen_t remote_addr_len = SUN_LEN(remote_addr);
+    if (sendto(sock_fd, (const void *)&req, sizeof(req), 0, (struct sockaddr *)remote_addr, remote_addr_len) < 0) {
+        perror("Request sendto() call failure");
+        printf("tried to open %s\n", remote_addr->sun_path);
+        res.status = STATUSCODE_SOCKERR;
+    }
+    if (req.cmd == CMD_ALLOCATE) {
+        // CMD_ALLOCATE receives shareable handle as a file descriptor, thus we use dedicated receiver function.
+        if (recvShareableHandle(sock_fd, &res.shareableHandle) < 0) {
+            perror("MemMapManager::RequestRegister failed to receive RequestAllocate result");
+            res.status = STATUSCODE_SOCKERR;    
+        }
+    } else {
+        if (recvfrom(sock_fd, (void *)&res, sizeof(res), 0, (struct sockaddr *)remote_addr, &remote_addr_len) < 0) {
+            perror("MemMapManager::RequestRegister failed to receive RequestRegister result");
+            res.status = STATUSCODE_SOCKERR;
+        }
+    }
+
+    sem_post(sem);
+    sem_close(sem);
+    return res;
+
+}
+
+void panic(const char * msg) {
+
+    perror(msg);
+    exit(EXIT_FAILURE);
 
 }
 
@@ -190,181 +376,4 @@ static int recvShareableHandle(int sock_fd, shareable_handle_t *shHandle) {
     }
 
     return 0;
-}
-
-MemMapManager::~MemMapManager() {
-
-    close(ipc_sock_fd_);
-    unlink(MemMapManager::endpointName);
-
-}
-
-
-MemMapResponse MemMapManager::RequestRegister(ProcessInfo &pInfo, int sock_fd) {
-
-    MemMapRequest req;
-    req.src = pInfo;
-    req.cmd = CMD_REGISTER;
-    MemMapResponse res = MemMapManager::Request(sock_fd, req, &server_addr);
-    return res;
-
-}
-
-void MemMapManager::Register(ProcessInfo &pInfo) {
-
-    auto processIterator = std::find(subscribers_.begin(), subscribers_.end(), pInfo);
-    if (processIterator != subscribers_.end()) {
-        // Process is already subscribing memory server. Ignored.
-        return;
-    }
-    subscribers_.push_back(pInfo);
-
-}
-
-MemMapResponse MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd, size_t alignment, size_t num_bytes) {
-    
-    MemMapRequest req;
-    req.src = pInfo;
-    req.cmd = CMD_ALLOCATE;
-    req.alignment = 1024;
-    req.size = num_bytes;
-
-    MemMapResponse res = MemMapManager::Request(sock_fd, req, &server_addr);
-
-    CUmemAccessDesc accessDescriptor;
-    accessDescriptor.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
-    accessDescriptor.location.id = pInfo.device_ordinal;
-    accessDescriptor.flags = CU_MEM_ACCESS_FLAGS_PROT_READWRITE;
-
-    CUmemGenericAllocationHandle allocHandle;
-    CUUTIL_ERRCHK(cuMemImportFromShareableHandle(
-        &allocHandle, (void *)(uintptr_t)res.shareableHandle, CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR));
-
-    res.d_ptr = (CUdeviceptr)nullptr;
-
-    CUUTIL_ERRCHK(cuMemAddressReserve(&res.d_ptr, req.size, alignment, 0, 0));
-    CUUTIL_ERRCHK(cuMemMap(res.d_ptr, req.size, 0, allocHandle, 0));
-    CUUTIL_ERRCHK(cuMemRelease(allocHandle));
-    CUUTIL_ERRCHK(cuMemSetAccess(res.d_ptr, num_bytes, &accessDescriptor, 1));
-
-    return res;
-}
-
-MemMapResponse MemMapManager::RequestRoundedAllocationSize(ProcessInfo &pInfo, int sock_fd, size_t num_bytes) {
-
-    MemMapRequest req;
-    req.src = pInfo;
-    req.cmd = CMD_GETROUNDEDALLOCATIONSIZE;
-    req.size = num_bytes;
-    MemMapResponse res = MemMapManager::Request(sock_fd, req, &server_addr);
-    return res;
-
-}
-
-size_t MemMapManager::GetRoundedAllocationSize(size_t num_bytes) {
-
-    CUmemAllocationProp prop = {};
-    prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
-    prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
-    // Use GPU 0 as Memory server device, for now.
-    prop.location.id = devices_[0];
-    prop.requestedHandleTypes = CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR;
-    size_t granularity = 0;
-    CUUTIL_ERRCHK(cuMemGetAllocationGranularity(
-        &granularity, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM));
-    if (num_bytes % granularity) {
-       num_bytes += (granularity - (num_bytes % granularity));
-    }
-
-    return num_bytes;
-
-}
-
-
-shareable_handle_t MemMapManager::Allocate(ProcessInfo &pInfo, size_t alignment, size_t num_bytes) {
-
-    CUmemAllocationProp prop = {};
-    prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
-    prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
-    // Use GPU 0 as Memory server device, for now.
-    prop.location.id = devices_[0];
-    prop.requestedHandleTypes = CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR;
-    CUmemGenericAllocationHandle allocHandle;
-    shareable_handle_t shHandle;
-    CUUTIL_ERRCHK( cuMemCreate(&allocHandle, num_bytes, &prop, 0) );
-    CUUTIL_ERRCHK( cuMemExportToShareableHandle((void *)&shHandle, allocHandle, CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR, 0) );
-    CUUTIL_ERRCHK( cuMemRelease(allocHandle) );
-    return shHandle;
-
-}
-
-MemMapResponse MemMapManager::RequestDeAllocate(ProcessInfo &pInfo, int sock_fd, shareable_handle_t shHandle) {
-    MemMapRequest req;
-    req.src = pInfo;
-    MemMapResponse res;
-    return res;
-}
-void MemMapManager::DeAllocate(ProcessInfo &pInfo, shareable_handle_t shHandle) {
-    
-}
-
-
-
-std::string MemMapManager::DebugString() const {
-
-    std::string dbg;
-    dbg.append("name: ");
-    dbg.append(MemMapManager::name);
-    dbg.append(", ipc_name: ");
-    dbg.append(MemMapManager::endpointName);
-    dbg.append(", ipc_sock_fd: ");
-    dbg.append(std::to_string(ipc_sock_fd_));
-
-    return dbg;
-
-}
-
-
-MemMapResponse MemMapManager::Request(int sock_fd, MemMapRequest req, struct sockaddr_un * remote_addr) {
-    
-    sem_t * sem;
-    sem = sem_open(MemMapManager::barrierName, O_CREAT, S_IRUSR|S_IWUSR, 0);
-    if (sem == SEM_FAILED) {
-        panic("Request: Failed to open semaphore");
-    }
-    sem_wait(sem);
-
-    MemMapResponse res;
-    res.status = STATUSCODE_ACK;
-    
-    socklen_t remote_addr_len = SUN_LEN(remote_addr);
-    if (sendto(sock_fd, (const void *)&req, sizeof(req), 0, (struct sockaddr *)remote_addr, remote_addr_len) < 0) {
-        perror("Request sendto() call failure");
-        printf("tried to open %s\n", remote_addr->sun_path);
-        res.status = STATUSCODE_SOCKERR;
-    }
-    if (req.cmd == CMD_ALLOCATE) {
-        // CMD_ALLOCATE receives shareable handle as a file descriptor, thus we use dedicated receiver function.
-        if (recvShareableHandle(sock_fd, &res.shareableHandle) < 0) {
-            perror("MemMapManager::RequestRegister failed to receive RequestAllocate result");
-            res.status = STATUSCODE_SOCKERR;    
-        }
-    } else {
-        if (recvfrom(sock_fd, (void *)&res, sizeof(res), 0, (struct sockaddr *)remote_addr, &remote_addr_len) < 0) {
-            perror("MemMapManager::RequestRegister failed to receive RequestRegister result");
-            res.status = STATUSCODE_SOCKERR;
-        }
-    }
-
-    sem_post(sem);
-    sem_close(sem);
-    return res;
-
-}
-
-void panic(const char * msg) {
-
-    perror(msg);
-    exit(EXIT_FAILURE);
-
 }

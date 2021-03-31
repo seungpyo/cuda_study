@@ -7,6 +7,7 @@
 #include <time.h>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <algorithm>
 #include <thread>
 #include <mutex>
@@ -22,8 +23,16 @@
 #include <semaphore.h>
 #include "cuda.h"
 #include "cuutils.h"
-// #include "shm_barrier.h"
 
+typedef uintptr_t shareable_handle_t;
+
+enum M3InternalErrorType {
+    M3INTERNAL_INVALIDCODE,
+    M3INTERNAL_NYI,
+    M3INTERNAL_OK,
+    M3INTERNAL_DUPLICATE_REGISTER,
+    M3INTERNAL_ENTRY_NOT_FOUND,
+};
 
 class ProcessInfo {
     public:
@@ -102,10 +111,10 @@ class MemMapRequest {
         MemMapCmd cmd;
         ProcessInfo src;
         size_t size, alignment;
+        shareable_handle_t shareableHandle;
         ProcessInfo importSrc;
 };
 
-typedef uintptr_t shareable_handle_t;
 class MemMapResponse {
     public:
         MemMapResponse(void) : MemMapResponse(STATUSCODE_INVALID) {}
@@ -134,8 +143,6 @@ class MemMapResponse {
         }
 };
 
-
-
 class MemMapManager {
     public:
         ~MemMapManager();
@@ -145,49 +152,44 @@ class MemMapManager {
             });
             return instance_;
         }
-        
-        std::string Name() { return name; }
-        static std::string EndPoint() { return endpointName; }
 
         static MemMapResponse Request(int sock_fd, MemMapRequest req, struct sockaddr_un * remote_addr);
-
         static MemMapResponse RequestRegister(ProcessInfo &pInfo, int sock_fd);
-        void Register(ProcessInfo &pInfo);
-
         static MemMapResponse RequestAllocate(ProcessInfo &pInfo, int sock_fd, size_t alignment, size_t num_bytes);
-        shareable_handle_t Allocate(ProcessInfo &pInfo, size_t alignment, size_t num_bytes);
-
         static MemMapResponse RequestDeAllocate(ProcessInfo &pInfo, int sock_fd, shareable_handle_t shHandle);
-        void DeAllocate(ProcessInfo &pInfo, shareable_handle_t shHandle);
-
         static MemMapResponse RequestRoundedAllocationSize(ProcessInfo &pInfo, int sock_fd, size_t num_bytes);
 
-        static void WaitInit(void);
-
         std::string DebugString() const;
+        std::string Name() { return name; }
+        static std::string EndPoint() { return endpointName; }
+        CUcontext ctx(void) { return ctx_; }
+
         static const char name[128];
         static const char endpointName[128];
         static const char barrierName[128];
 
-        CUcontext ctx(void) { return ctx_; }
+        
 
     private:
         MemMapManager();
         void Server();
+
+        M3InternalErrorType Register(ProcessInfo &pInfo);
+        M3InternalErrorType Allocate(ProcessInfo &pInfo, size_t alignment, size_t num_bytes, shareable_handle_t *shHandle);
+        M3InternalErrorType DeAllocate(ProcessInfo &pInfo, shareable_handle_t shHandle);
         size_t GetRoundedAllocationSize(size_t num_bytes);
 
         static MemMapManager * instance_;
         static std::once_flag singletonFlag_;
 
-        int ipc_sock_fd_;
         std::vector<CUdevice> devices_;
         int device_count_;
-        std::vector<ProcessInfo> subscribers_;
         CUcontext ctx_;
-        std::vector<std::pair<CUcontext, CUcontext>> edges_; 
+
+        int ipc_sock_fd_;
+        std::vector<ProcessInfo> subscribers_;
+
 };
-
-
 
 static struct sockaddr_un server_addr = { 
     AF_UNIX,
@@ -195,7 +197,5 @@ static struct sockaddr_un server_addr = {
 };
 
 void panic(const char * msg);
-
-
 static int sendShareableHandle(int sock_fd, struct sockaddr_un * client_addr, shareable_handle_t shHandle);
 static int recvShareableHandle(int sock_fd, shareable_handle_t *shHandle);
