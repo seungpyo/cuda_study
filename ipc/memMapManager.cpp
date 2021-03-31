@@ -1,5 +1,5 @@
 #include "MemMapManager.h"
-#include "shm_barrier.h"
+// #include "shm_barrier.h"
 
 MemMapManager * MemMapManager::instance_ = nullptr;
 std::once_flag MemMapManager::singletonFlag_;

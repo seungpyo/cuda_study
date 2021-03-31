@@ -22,7 +22,6 @@ int main() {
         int multiProcessorCount;
 
         // And then, launch client process.
-        // sharedMemoryInfo shmInfo;
         ProcessInfo pInfo;
         pInfo.pid = getpid();
 
@@ -42,14 +41,6 @@ int main() {
         if (bind(sock_fd, (struct sockaddr *)&client_addr, SUN_LEN(&client_addr)) < 0) {
             panic("MemMapManager::RequestRegister failed to bind client socket");
         }
-
-        /*
-        if (sharedMemoryOpen(barrier_name, sizeof(shmStruct),  &shmInfo) != 0) {
-            panic("main, sharedMemoryOpen");
-        }
-        volatile shmStruct * shm = (volatile shmStruct *)shmInfo.addr;
-        waitServerInit(&shm->sense, &shm->counter, false);
-        */
 
         pInfo.device_ordinal = 0;
         CUUTIL_ERRCHK(cuDeviceGet(&pInfo.device, pInfo.device_ordinal));
@@ -104,14 +95,9 @@ int main() {
             panic("Failed to halt M3 instance");
         }
         unlink(pInfo.AddressString().c_str());
-        // sharedMemoryClose(&shmInfo);
     } else {
         // parent process as a demo server.
-        
-        // volatile shmStruct * shm = (volatile shmStruct *)shmInfo.addr;
         MemMapManager *m3 = MemMapManager::Instance();
-        
-        // sharedMemoryClose(&shmInfo);
         int wait_status;
         wait(&wait_status);
     }
