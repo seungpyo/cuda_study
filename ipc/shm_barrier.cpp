@@ -48,34 +48,12 @@ void sharedMemoryClose(sharedMemoryInfo *info) {
   }
 }
 
-/*
-void barrierWait(volatile int *barrier, volatile int *sense, unsigned int n) {
-  int count;
-  // Check-in
-  
-  count = cpu_atomic_add32(barrier, 1);
-  if (count == n) {  // Last one in
-    *sense = 1;
-  }
-  while (!*sense);
-
-  // Check-out
-
-  count = cpu_atomic_add32(barrier, -1);
-  std::cout << getpid() << " checks out" << std::endl;
-  if (count == 0) {
-    *sense = 0;
-  } else {
-    std::cout << getpid() << " yields barrier = " << *barrier << std::endl;
-  }
-  while (*sense);
-  std::cout << getpid() << " exits barrierWait" << std::endl;
-}
-*/
 void waitServerInit(volatile int *sense, volatile int * counter, bool isServer) {
   if (isServer) {
+    std::cout << "Server in" << std::endl;
     *sense = 1;
   } else {
+    std::cout << "client in" << std::endl;
     cpu_atomic_add32(counter, 1);
   }
   while(!*sense);

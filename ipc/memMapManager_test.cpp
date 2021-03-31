@@ -36,19 +36,20 @@ int main() {
 
         bzero(&client_addr, sizeof(client_addr));
         client_addr.sun_family = AF_UNIX;
-        pInfo.AddressString(client_addr.sun_path, 100);
+        strcpy(client_addr.sun_path, pInfo.AddressString().c_str());
 
         
         if (bind(sock_fd, (struct sockaddr *)&client_addr, SUN_LEN(&client_addr)) < 0) {
             panic("MemMapManager::RequestRegister failed to bind client socket");
         }
 
-
+        /*
         if (sharedMemoryOpen(barrier_name, sizeof(shmStruct),  &shmInfo) != 0) {
             panic("main, sharedMemoryOpen");
         }
         volatile shmStruct * shm = (volatile shmStruct *)shmInfo.addr;
         waitServerInit(&shm->sense, &shm->counter, false);
+        */
 
         pInfo.device_ordinal = 0;
         CUUTIL_ERRCHK(cuDeviceGet(&pInfo.device, pInfo.device_ordinal));
@@ -65,6 +66,7 @@ int main() {
         CUUTIL_ERRCHK(cuStreamCreate(&stream_d2h, CU_STREAM_NON_BLOCKING));
 
         std::vector<CUdeviceptr> d_ptr;
+        bool pass = true;
         for(int t = 0; t < 10; ++t) {
             MemMapResponse res;
             res = MemMapManager::RequestRoundedAllocationSize(pInfo, sock_fd, 32*1024);
@@ -82,10 +84,16 @@ int main() {
             char recv_string[128];
             CUUTIL_ERRCHK(cuMemcpyHtoD(addr, test_string, 128));
             CUUTIL_ERRCHK(cuMemcpyDtoH(recv_string, addr, 128));
-            std::cout << "test_string: " << test_string << std::endl;
-            std::cout << "recv_string: " << recv_string << std::endl;
+            pass = pass && !strcmp(test_string, recv_string);
+            if (!pass) {
+                break;
+            }
         }
-        
+        if (pass) {
+            std::cout << "ALLOCATE TEST PASSED" << std::endl;
+        } else {
+            std::cout << "ALLOCATE TEST FAILED" << std::endl;
+        }
         
 
         MemMapRequest req;
@@ -95,15 +103,15 @@ int main() {
         if (res.status != STATUSCODE_ACK) {
             panic("Failed to halt M3 instance");
         }
-
-        sharedMemoryClose(&shmInfo);
+        unlink(pInfo.AddressString().c_str());
+        // sharedMemoryClose(&shmInfo);
     } else {
         // parent process as a demo server.
         
-        volatile shmStruct * shm = (volatile shmStruct *)shmInfo.addr;
+        // volatile shmStruct * shm = (volatile shmStruct *)shmInfo.addr;
         MemMapManager *m3 = MemMapManager::Instance();
         
-        sharedMemoryClose(&shmInfo);
+        // sharedMemoryClose(&shmInfo);
         int wait_status;
         wait(&wait_status);
     }

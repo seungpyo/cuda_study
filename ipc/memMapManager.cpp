@@ -5,17 +5,15 @@ MemMapManager * MemMapManager::instance_ = nullptr;
 std::once_flag MemMapManager::singletonFlag_;
 const char MemMapManager::name[128] = "MemMapManager";
 const char MemMapManager::endpointName[128] = "MemMapManager_Server_EndPoint";
-const CUmemAllocationHandleType ipcHandleTypeFlag =
-    CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR;
+const char MemMapManager::barrierName[128] = "MemMapManager_Server_Barrier";
 
 MemMapManager::MemMapManager() {
-    
+
+    char barrierToRemove[128] = "/dev/shm/sem.";
+    strcat(barrierToRemove, MemMapManager::barrierName);
+    unlink(barrierToRemove);
     unlink(MemMapManager::endpointName);
-    if (sharedMemoryCreate(barrier_name, sizeof(shmStruct),  &shmInfo) < 0) {
-        panic("main, sharedMemoryOpen");
-    }
-    volatile shmStruct * shm = (volatile shmStruct *)shmInfo.addr;
-    
+
     CUUTIL_ERRCHK(cuInit(0));
     
     CUUTIL_ERRCHK(cuDeviceGetCount(&device_count_));
@@ -29,23 +27,30 @@ MemMapManager::MemMapManager() {
     if((ipc_sock_fd_ = socket(AF_UNIX, SOCK_DGRAM, 0)) == -1) {
         panic("MemMapManager: Failed to open server socket");
     }
+
     bzero(&server_addr, sizeof(server_addr));
-    
     server_addr.sun_family = AF_UNIX;
     size_t name_len = strlen(MemMapManager::endpointName);
     if (name_len >= sizeof(server_addr.sun_path)) {
         panic("MemMapManager: Name is too long");
     }
     strncpy(server_addr.sun_path, MemMapManager::endpointName, name_len);
-    
 
     if (bind(ipc_sock_fd_, (struct sockaddr *)&server_addr, SUN_LEN(&server_addr)) < 0) {
         std::cout << getpid() << " server_addr: " << server_addr.sun_path << std::endl;
         panic("MemMapManager::MemMapManager: Binding IPC server socket failed");
     }
 
-    waitServerInit(&shm->sense, &shm->counter, true);
+    sem_t * sem = sem_open(MemMapManager::barrierName, O_CREAT, S_IRUSR|S_IWUSR, 0);
+    if (sem == SEM_FAILED) {
+        std::cout << MemMapManager::barrierName << std::endl;
+        panic("MemMapManager: Failed to open semaphore");
+    }                           
+    sem_post(sem);
+    sem_close(sem);                                                                                                                 
+
     Server();
+    
 }
 
 void MemMapManager::Server() {
@@ -189,8 +194,8 @@ static int recvShareableHandle(int sock_fd, shareable_handle_t *shHandle) {
 
 MemMapManager::~MemMapManager() {
 
-    unlink(MemMapManager::endpointName);
     close(ipc_sock_fd_);
+    unlink(MemMapManager::endpointName);
 
 }
 
@@ -233,7 +238,7 @@ MemMapResponse MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd, s
 
     CUmemGenericAllocationHandle allocHandle;
     CUUTIL_ERRCHK(cuMemImportFromShareableHandle(
-        &allocHandle, (void *)(uintptr_t)res.shareableHandle, ipcHandleTypeFlag));
+        &allocHandle, (void *)(uintptr_t)res.shareableHandle, CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR));
 
     res.d_ptr = (CUdeviceptr)nullptr;
 
@@ -263,7 +268,7 @@ size_t MemMapManager::GetRoundedAllocationSize(size_t num_bytes) {
     prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
     // Use GPU 0 as Memory server device, for now.
     prop.location.id = devices_[0];
-    prop.requestedHandleTypes = ipcHandleTypeFlag;
+    prop.requestedHandleTypes = CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR;
     size_t granularity = 0;
     CUUTIL_ERRCHK(cuMemGetAllocationGranularity(
         &granularity, &prop, CU_MEM_ALLOC_GRANULARITY_MINIMUM));
@@ -283,21 +288,24 @@ shareable_handle_t MemMapManager::Allocate(ProcessInfo &pInfo, size_t alignment,
     prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
     // Use GPU 0 as Memory server device, for now.
     prop.location.id = devices_[0];
-    prop.requestedHandleTypes = ipcHandleTypeFlag;
+    prop.requestedHandleTypes = CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR;
     CUmemGenericAllocationHandle allocHandle;
     shareable_handle_t shHandle;
     CUUTIL_ERRCHK( cuMemCreate(&allocHandle, num_bytes, &prop, 0) );
-    CUUTIL_ERRCHK( cuMemExportToShareableHandle((void *)&shHandle, allocHandle, ipcHandleTypeFlag, 0) );
+    CUUTIL_ERRCHK( cuMemExportToShareableHandle((void *)&shHandle, allocHandle, CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR, 0) );
     CUUTIL_ERRCHK( cuMemRelease(allocHandle) );
-
     return shHandle;
 
 }
 
+MemMapResponse MemMapManager::RequestDeAllocate(ProcessInfo &pInfo, int sock_fd, shareable_handle_t shHandle) {
+    MemMapRequest req;
+    req.src = pInfo;
+    MemMapResponse res;
+    return res;
+}
 void MemMapManager::DeAllocate(ProcessInfo &pInfo, shareable_handle_t shHandle) {
-
-    return;
-
+    
 }
 
 
@@ -319,13 +327,20 @@ std::string MemMapManager::DebugString() const {
 
 MemMapResponse MemMapManager::Request(int sock_fd, MemMapRequest req, struct sockaddr_un * remote_addr) {
     
+    sem_t * sem;
+    sem = sem_open(MemMapManager::barrierName, O_CREAT, S_IRUSR|S_IWUSR, 0);
+    if (sem == SEM_FAILED) {
+        panic("Request: Failed to open semaphore");
+    }
+    sem_wait(sem);
+
     MemMapResponse res;
     res.status = STATUSCODE_ACK;
     
     socklen_t remote_addr_len = SUN_LEN(remote_addr);
     if (sendto(sock_fd, (const void *)&req, sizeof(req), 0, (struct sockaddr *)remote_addr, remote_addr_len) < 0) {
-        perror(remote_addr->sun_path);
-        // perror("MemMapManager::RequestRegister failed to send RequestRegister request; maybe server_addr is invalid?");
+        perror("Request sendto() call failure");
+        printf("tried to open %s\n", remote_addr->sun_path);
         res.status = STATUSCODE_SOCKERR;
     }
     if (req.cmd == CMD_ALLOCATE) {
@@ -341,6 +356,8 @@ MemMapResponse MemMapManager::Request(int sock_fd, MemMapRequest req, struct soc
         }
     }
 
+    sem_post(sem);
+    sem_close(sem);
     return res;
 
 }

@@ -18,8 +18,10 @@
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <atomic>
+#include <semaphore.h>
 
 static const char * barrier_name = "MemMapManagerBarrier";
+static sem_t sem;
 
 typedef struct sharedMemoryInfo_st {
     void *addr;

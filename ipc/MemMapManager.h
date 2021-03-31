@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -18,9 +19,10 @@
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <atomic>
+#include <semaphore.h>
 #include "cuda.h"
 #include "cuutils.h"
-#include "shm_barrier.h"
+// #include "shm_barrier.h"
 
 
 class ProcessInfo {
@@ -47,23 +49,20 @@ class ProcessInfo {
                 ctx = pInfo.ctx;
             }
         }
-        /*
-        ProcessInfo& operator =(const ProcessInfo& pInfo)
-        {
-            std::cout << "boom!" << std::endl;
-            *this = ProcessInfo(pInfo);
-            return *this;
-        }
-        */
 
         bool operator ==(const ProcessInfo &other) const {
             bool ret = true;
             ret = ret && (pid == other.pid);
             return ret;
         }
-        void AddressString(char *addrStr, size_t max_len) {
-            snprintf(addrStr, max_len, "%d_ipc", pid);
+
+        std::string AddressString() {
+            char buf[1024];
+            sprintf(buf, "pid_%d", pid);
+            std::string s(buf);
+            return s;
         }
+
         std::string DebugString() {
             char buf[1024];
             sprintf(buf, "pid = %d\n", pid);
@@ -163,9 +162,12 @@ class MemMapManager {
 
         static MemMapResponse RequestRoundedAllocationSize(ProcessInfo &pInfo, int sock_fd, size_t num_bytes);
 
+        static void WaitInit(void);
+
         std::string DebugString() const;
         static const char name[128];
         static const char endpointName[128];
+        static const char barrierName[128];
 
         CUcontext ctx(void) { return ctx_; }
 
@@ -176,6 +178,7 @@ class MemMapManager {
 
         static MemMapManager * instance_;
         static std::once_flag singletonFlag_;
+
         int ipc_sock_fd_;
         std::vector<CUdevice> devices_;
         int device_count_;
