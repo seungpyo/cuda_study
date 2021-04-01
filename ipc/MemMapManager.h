@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
+#include <assert.h>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -45,9 +46,8 @@ class ProcessInfo {
 
         ProcessInfo(int _device_ordinal) {
             pid = getpid();
-            device_ordinal = _device_ordinal;
-            CUUTIL_ERRCHK(cuDeviceGet(&device, device_ordinal));
         }
+
 
         ProcessInfo(const ProcessInfo& pInfo) {
             if (this != &pInfo)
@@ -57,6 +57,13 @@ class ProcessInfo {
                 device = pInfo.device;
                 ctx = pInfo.ctx;
             }
+        }
+
+        void SetContext(CUcontext &_ctx) {
+            ctx = _ctx;
+            CUUTIL_ERRCHK( cuCtxGetDevice(&device) );
+            // For now, we just assume that device ordinal is same as device id.
+            device_ordinal = device;
         }
 
         bool operator ==(const ProcessInfo &other) const {
@@ -74,9 +81,10 @@ class ProcessInfo {
 
         std::string DebugString() {
             char buf[1024];
-            sprintf(buf, "pid = %d\n", pid);
-            sprintf(buf+strlen(buf), "device = %d\n", device);
-            sprintf(buf+strlen(buf), "device_ordinal = %d\n", device_ordinal);
+            sprintf(buf+strlen(buf), "ProcessInfo:\n");
+            sprintf(buf+strlen(buf), "* pid = %d\n", pid);
+            sprintf(buf+strlen(buf), "* device = %d\n", device);
+            sprintf(buf+strlen(buf), "* device_ordinal = %d\n", device_ordinal);
             std::string s(buf);
             return s;
         }
@@ -129,6 +137,7 @@ class MemMapResponse {
         shareable_handle_t shareableHandle;
         size_t roundedSize;
         CUdeviceptr d_ptr;
+        uint32_t numShareableHandles;
 
         std::string DebugString() {
             char buf[1024];
@@ -175,7 +184,7 @@ class MemMapManager {
         void Server();
 
         M3InternalErrorType Register(ProcessInfo &pInfo);
-        M3InternalErrorType Allocate(ProcessInfo &pInfo, size_t alignment, size_t num_bytes, shareable_handle_t *shHandle);
+        M3InternalErrorType Allocate(ProcessInfo &pInfo, size_t alignment, size_t num_bytes, std::vector<shareable_handle_t> &shHandle, std::vector<CUmemGenericAllocationHandle> &allocHandle);
         M3InternalErrorType DeAllocate(ProcessInfo &pInfo, shareable_handle_t shHandle);
         size_t GetRoundedAllocationSize(size_t num_bytes);
 

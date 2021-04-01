@@ -29,6 +29,8 @@ static const char * getCuDrvErrorString(CUresult e) {
 			return "CUDA_ERROR_INVALID_DEVICE";
 		case CUDA_ERROR_INVALID_CONTEXT:
 			return "CUDA_ERROR_INVALID_CONTEXT";
+        case CUDA_ERROR_NOT_SUPPORTED:
+			return "CUDA_ERROR_NOT_SUPPORTED";
 		default:
 			printf("ERROR CODE = %d\n", e);
 			return "getCuDrvErrorString: UNKNOWN ERROR CODE";

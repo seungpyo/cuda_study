@@ -495,10 +495,12 @@ static void parentProcess(char *app) {
         break;
       }
     } else {
+      char dName[128];
+      checkCudaErrors(cuDeviceGetName(dName, 128, i)); 
       printf(
-          "Device %d is not peer capable with some other selected peers, "
+          "Device %d : %s is not peer capable with some other selected peers, "
           "skipping\n",
-          i);
+          i, dName);
     }
   }
 

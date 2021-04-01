@@ -1,4 +1,4 @@
-NVCC=/usr/local/cuda-11.2/bin/nvcc
+NVCC=/usr/local/cuda-11.0/bin/nvcc
 all:
 	$(NVCC) -g -lcuda -lrt -o memMapManager_test memMapManager.cpp memMapManager_test.cpp
 clean:
