@@ -69,18 +69,24 @@ void MemMapManager::Server() {
     std::vector<CUmemGenericAllocationHandle> allocHandles;
     std::vector<shareable_handle_t> shHandles;
     uint32_t numShareableHandles;
+    bool shHandleAlreadyExists;
 
 
     while(!halt) {
         MemMapRequest req;
         MemMapResponse res;
+
         struct sockaddr_un client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
+        bzero(&client_addr, client_addr_len);
         if (recvfrom(ipc_sock_fd_, (void *)&req, sizeof(req), 0, (struct sockaddr *)&client_addr, &client_addr_len) < 0) {
             panic("MemMapManager::MemMapManager: failed to receive IPC message");
         }
         res.dst = req.src;
         switch (req.cmd) {
+            case CMD_ECHO:
+                res.status = STATUSCODE_ACK;
+                break;
             case CMD_HALT:
                 res.status = STATUSCODE_ACK;
                 halt = true;
@@ -93,16 +99,52 @@ void MemMapManager::Server() {
                 // We assume that client request CMD_GETROUNDEDALLOCATIONSIZE before CMD_ALLOCATE.
                 // Thus, no size rounding is provided in this command.
                 res.status = STATUSCODE_ACK;
-                // MEM_POOL_NUM_ENTRY should be defined in memory pool class definition.
-                // uint32_t numShareableHandles = (req.size + MEM_POOL_NUM_ENTRY - 1) / MEM_POOL_NUM_ENTRY;
-                // For now, we just cut the region into half.
-                numShareableHandles = 1;
-                res.numShareableHandles = numShareableHandles;
-                shHandles.resize(numShareableHandles);
-                m3Err = Allocate(req.src, req.alignment, req.size, shHandles, allocHandles);
-                if (m3Err != M3INTERNAL_OK) {
-                    printf("M3 Internal Error Code %d\n", m3Err);
-                    panic("Server failed to Allocate()");
+                
+                shHandles.clear();
+                shHandleAlreadyExists = false;
+                for (auto& it : memIdToShHandle_) {
+                    if(it.first == req.memId) {
+                        if (!shHandleAlreadyExists) {
+                            shHandleAlreadyExists = true;
+                            res.numShareableHandles = 1;
+                        } else {
+                            res.numShareableHandles++;
+                        }
+                        shHandles.push_back(it.second);
+                    }
+                }
+                /*
+                std::cout << "dump of memIdToShHandle_:";
+                for(auto & it : memIdToShHandle_) {
+                    std::cout << it.first << " -> " << it.second << ", ";
+                }
+                std::cout << std::endl;
+                std::cout << "shareable handle cache hit: ";
+                for(auto & sh : shHandles) {
+                    std::cout << sh << ", ";
+                }
+                std::cout << std::endl;
+                */
+
+                if (!shHandleAlreadyExists) {
+                    // MEM_POOL_NUM_ENTRY should be defined in memory pool class definition.
+                    // uint32_t numShareableHandles = (req.size + MEM_POOL_NUM_ENTRY - 1) / MEM_POOL_NUM_ENTRY;
+                    // For now, we just cut the region into half.
+                    numShareableHandles = 1;
+                    res.numShareableHandles = numShareableHandles;
+                    shHandles.resize(numShareableHandles);
+                    m3Err = Allocate(req.src, req.alignment, req.size, shHandles, allocHandles);
+                    if (m3Err != M3INTERNAL_OK) {
+                        printf("M3 Internal Error Code %d\n", m3Err);
+                        panic("Server failed to Allocate()");
+                    }
+                    for(auto& sh : shHandles) {
+                        memIdToShHandle_[req.memId] = sh;
+                        shHandletoMemId_[sh] = req.memId;
+                    }
+                    for(auto& ah : allocHandles) {
+                        CUUTIL_ERRCHK(cuMemRelease(ah));
+                    }
                 }
                 break;
             case CMD_GETROUNDEDALLOCATIONSIZE:
@@ -114,13 +156,12 @@ void MemMapManager::Server() {
                 break;
         }
 
-
         if (sendto(ipc_sock_fd_, (const void *)&res, sizeof(res), 0, (struct sockaddr *)&client_addr, sizeof(client_addr)) < 0) {
             panic("MemMapManager::MemMapManager: failed to send IPC message");
         }
 
         if (req.cmd == CMD_ALLOCATE) {
-            res.memId = req.memId;
+            strncpy(res.memId, req.memId, MAX_MEMID_LEN);
             for(auto sh : shHandles) {
                 res.shareableHandle = sh;
                 if (sendShareableHandle(ipc_sock_fd_, &client_addr, res.shareableHandle) < 0) {
@@ -189,6 +230,8 @@ MemMapResponse MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd, s
     req.cmd = CMD_ALLOCATE;
     req.alignment = 1024;
     req.size = num_bytes;
+    strncpy(req.memId, "myRedundantMemoryId", MAX_MEMID_LEN);
+
 
     MemMapResponse res;   
     res.status = STATUSCODE_ACK;
@@ -235,9 +278,6 @@ MemMapResponse MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd, s
     CUmemGenericAllocationHandle allocHandle;
     res.d_ptr = (CUdeviceptr)nullptr;
     CUUTIL_ERRCHK(cuMemAddressReserve(&res.d_ptr, req.size, alignment, 0, 0));
-
-    size_t totMem;
-    CUUTIL_ERRCHK(cuDeviceTotalMem(&totMem, 0));
 
     assert(res.numShareableHandles > 0);
     size_t chunkSize = req.size / res.numShareableHandles;
@@ -363,6 +403,7 @@ MemMapResponse MemMapManager::Request(int sock_fd, MemMapRequest req, struct soc
         printf("tried to open %s\n", remote_addr->sun_path);
         res.status = STATUSCODE_SOCKERR;
     }
+
     if (recvfrom(sock_fd, (void *)&res, sizeof(res), 0, (struct sockaddr *)remote_addr, &remote_addr_len) < 0) {
         perror("MemMapManager::RequestRegister failed to receive RequestRegister result");
         res.status = STATUSCODE_SOCKERR;
@@ -370,6 +411,7 @@ MemMapResponse MemMapManager::Request(int sock_fd, MemMapRequest req, struct soc
 
     sem_post(sem);
     sem_close(sem);
+
     return res;
 
 }

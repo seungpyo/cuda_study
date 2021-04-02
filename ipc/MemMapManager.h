@@ -92,6 +92,7 @@ class ProcessInfo {
 
 enum MemMapCmd {
     CMD_INVALID,
+    CMD_ECHO,
     CMD_HALT,
     CMD_REGISTER,
     CMD_DEREGISTER,
@@ -108,6 +109,8 @@ enum MemMapStatusCode {
     STATUSCODE_SOCKERR
 };
 
+#define MAX_MEMID_LEN 256
+
 class MemMapRequest {
     public:
         MemMapRequest() : MemMapRequest(CMD_INVALID) {}
@@ -119,7 +122,7 @@ class MemMapRequest {
         MemMapCmd cmd;
         ProcessInfo src;
         shareable_handle_t shareableHandle;
-        std::string memId;
+        char memId[MAX_MEMID_LEN];
         size_t size, alignment;
         ProcessInfo importSrc;
 };
@@ -136,16 +139,19 @@ class MemMapResponse {
         MemMapStatusCode status;
         ProcessInfo dst;
         shareable_handle_t shareableHandle;
-        std::string memId;
+        char memId[MAX_MEMID_LEN];
         size_t roundedSize;
         CUdeviceptr d_ptr;
         uint32_t numShareableHandles;
 
         std::string DebugString() {
             char buf[1024];
-            sprintf(buf, "* status code = %d\n", status);
+            sprintf(buf+strlen(buf), "* status code = %d\n", status);
             sprintf(buf+strlen(buf), "* roundedSize = %p\n", roundedSize);
             sprintf(buf+strlen(buf), "* d_ptr = %p\n", d_ptr);
+            sprintf(buf+strlen(buf), "* numShareableHandles = %u\n", numShareableHandles);
+            sprintf(buf+strlen(buf), "* shareableHandle = %p\n", shareableHandle);
+            sprintf(buf+strlen(buf), "* memId = %s\n", memId);
             sprintf(buf+strlen(buf), "* Destination process info\n");
             sprintf(buf+strlen(buf), "* %s", dst.DebugString().c_str());
             std::string s(buf);
@@ -198,6 +204,10 @@ class MemMapManager {
 
         int ipc_sock_fd_;
         std::vector<ProcessInfo> subscribers_;
+
+        std::unordered_map<std::string, shareable_handle_t> memIdToShHandle_;
+        std::unordered_map<shareable_handle_t, std::string> shHandletoMemId_;        
+
 
 };
 

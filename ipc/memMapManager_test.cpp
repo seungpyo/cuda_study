@@ -66,7 +66,11 @@ void test_MultiGPUAllocate(char * unit, size_t factor) {
         req.cmd = CMD_HALT;
         res = MemMapManager::Request(sock_fd, req, &server_addr);
         if (res.status != STATUSCODE_ACK) {
-            panic("Failed to halt M3 instance");
+            std::cout << res.DebugString() << std::endl;
+            while(true);
+
+
+            // panic("Failed to halt M3 instance");
         }
         unlink(pInfo.AddressString().c_str());
 
@@ -91,13 +95,15 @@ void test_Allocate(void) {
     if ((pid = fork()) == 0) {
         CUUTIL_ERRCHK(cuInit(0));
         CUcontext ctx;
-        CUdevice device;
+        CUdevice device = 0;
         
         CUstream stream_h2d, stream_d2h;
         int multiProcessorCount;
 
         // And then, launch client process.
         ProcessInfo pInfo;
+        CUUTIL_ERRCHK(cuCtxCreate(&ctx, 0, device));
+        pInfo.SetContext(ctx);
 
         // Open and bind socket to client's unique IPC file.
         int sock_fd = 0;
@@ -116,9 +122,7 @@ void test_Allocate(void) {
             panic("MemMapManager::RequestRegister failed to bind client socket");
         }
 
-        pInfo.device_ordinal = 0;
-        CUUTIL_ERRCHK(cuDeviceGet(&pInfo.device, pInfo.device_ordinal));
-        CUUTIL_ERRCHK(cuCtxCreate(&pInfo.ctx, 0, pInfo.device));
+        
         MemMapResponse res;
         res = MemMapManager::RequestRegister(pInfo, sock_fd);
         if(res.status != STATUSCODE_ACK) {
@@ -132,12 +136,13 @@ void test_Allocate(void) {
 
         std::vector<CUdeviceptr> d_ptr;
         bool pass = true;
-        for(int t = 0; t < 10; ++t) {
+        for(int t = 0; t < 2; ++t) {
             MemMapResponse res;
             res = MemMapManager::RequestRoundedAllocationSize(pInfo, sock_fd, 32*1024);
-            if (res.status != STATUSCODE_ACK) {
+            if (res.status != STATUSCODE_ACK) {    
                 panic("Failed to get rounded allocation size");
             }
+
             res =  MemMapManager::RequestAllocate(pInfo, sock_fd, 1024, res.roundedSize);
             if(res.status != STATUSCODE_ACK) {
                 std::cout << res.status << std::endl;
@@ -166,7 +171,10 @@ void test_Allocate(void) {
         req.cmd = CMD_HALT;
         res = MemMapManager::Request(sock_fd, req, &server_addr);
         if (res.status != STATUSCODE_ACK) {
+            std::cout << "halt status code = " << res.status << std::endl;
+            std::cout << res.DebugString() << std::endl;
             panic("Failed to halt M3 instance");
+            
         }
         unlink(pInfo.AddressString().c_str());
     } else {
@@ -176,6 +184,73 @@ void test_Allocate(void) {
         wait(&wait_status);
     }
 
+}
+
+
+void test_Echo(int rep) {
+    pid_t pid = fork();
+    if (pid == 0) {
+        CUUTIL_ERRCHK(cuInit(0));
+        CUcontext ctx;
+        CUdevice dev = 0;
+        CUUTIL_ERRCHK(cuCtxCreate(&ctx, 0, dev));
+        ProcessInfo pInfo;
+        pInfo.SetContext(ctx);
+
+        int sock_fd = 0;
+        struct sockaddr_un client_addr;
+
+        if ((sock_fd = socket(AF_UNIX, SOCK_DGRAM, 0)) == -1) {
+            panic("MemMapManager::RequestRegister failed to open socket");
+        }
+
+        bzero(&client_addr, sizeof(client_addr));
+        client_addr.sun_family = AF_UNIX;
+        strcpy(client_addr.sun_path, pInfo.AddressString().c_str());
+
+        
+        if (bind(sock_fd, (struct sockaddr *)&client_addr, SUN_LEN(&client_addr)) < 0) {
+            panic("MemMapManager::RequestRegister failed to bind client socket");
+        }
+
+        MemMapRequest req;
+        req.src = pInfo;
+        req.cmd = CMD_ECHO;
+        MemMapResponse res;
+
+        res = MemMapManager::RequestRoundedAllocationSize(pInfo, sock_fd, 1024);
+        if (res.status != STATUSCODE_ACK) {
+            std::cout << "Failed to get rounded size" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        std::cout << "round result = 0x" << std::hex << res.roundedSize << std::endl;
+        size_t nbytes = res.roundedSize;
+
+        for(int i = 0; i < rep; ++i) {
+            // res = MemMapManager::Request(sock_fd, req, &server_addr);
+            // res = MemMapManager::RequestRoundedAllocationSize(pInfo, sock_fd, 1024);
+            // std::cout << "RequestAllocate call #" << i << std::endl;
+            res = MemMapManager::RequestAllocate(pInfo, sock_fd, 1024, nbytes);
+            if (res.status != STATUSCODE_ACK) {
+                std::cout << "Echo failed at rep = " << rep << std::endl;
+                std::cout << "Response is:" << std::endl;
+                std::cout << res.DebugString() << std::endl;
+            }
+            
+        }
+
+        req.cmd = CMD_HALT;
+        res = MemMapManager::Request(sock_fd, req, &server_addr);
+        if (res.status != STATUSCODE_ACK) {
+            std::cout << "Failed to halt M3 server; res.status = " << res.status << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        
+    } else {
+        MemMapManager * m3 = MemMapManager::Instance();
+        int wStat;
+        wait(&wStat);
+    }
 }
 
 #define TEST_ALLOCATE
@@ -189,12 +264,18 @@ int main(int argc, char *argv[]) {
 #ifdef TEST_ALLOCATE
     test_Allocate();
 #endif /* TEST_GPUALLOCATE */
+
+#ifdef TEST_ECHO
+    if (argc != 2) {
+        printf("Usage: [%s] <Number of repetition> \n", argv[0]);
+        exit(EXIT_SUCCESS);
+    }
+    test_Echo(atoi(argv[1]));
+#endif /* TEST_ECHO */
     
     
 #ifdef TEST_MULTIGPUALLOCATE           
     if(argc != 3) {
-        printf("Usage: [%s] <unit> <Number of unit> \n", argv[0]);
-        exit(EXIT_SUCCESS);
     }
     test_MultiGPUAllocate(argv[1], (size_t) atoi(argv[2]));
 #endif /* TEST_MULTIGPUALLOCATE */            
