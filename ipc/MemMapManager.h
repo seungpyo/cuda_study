@@ -184,7 +184,8 @@ class MemMapManager {
         // RequestAllocate() is a dedicate method to request Allocate() function.
         // Since shareable handles are UNIX file descriptors of separate process,
         // we must receive ancillary messages using sendmsg() and recvmsg().
-        static MemMapResponse RequestAllocate(ProcessInfo &pInfo, int sock_fd, size_t alignment, size_t num_bytes);
+        // To allocate anonymous memory region (without memId), pass nullptr to memId.
+        static MemMapResponse RequestAllocate(ProcessInfo &pInfo, int sock_fd, char * memId, size_t alignment, size_t num_bytes);
 
         // Trivial Getter / Setters.
         std::string DebugString() const;

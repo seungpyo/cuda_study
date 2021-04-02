@@ -200,14 +200,18 @@ M3InternalErrorType MemMapManager::Register(ProcessInfo &pInfo) {
     return M3INTERNAL_OK;
 }
 
-MemMapResponse MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd, size_t alignment, size_t num_bytes) {
+MemMapResponse MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd, char * memId, size_t alignment, size_t num_bytes) {
 
     MemMapRequest req;
     req.src = pInfo;
     req.cmd = CMD_ALLOCATE;
     req.alignment = 1024;
     req.size = num_bytes;
-    strncpy(req.memId, "myRedundantMemoryId", MAX_MEMID_LEN);
+    if (memId == nullptr) {
+    strncpy(req.memId, "DEFAULT_MEMID", MAX_MEMID_LEN);
+    } else {
+        strncpy(req.memId, memId, MAX_MEMID_LEN);
+    }
 
     MemMapResponse res;
     res.status = STATUSCODE_ACK;

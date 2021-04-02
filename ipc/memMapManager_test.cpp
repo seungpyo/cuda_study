@@ -92,7 +92,7 @@ void test_MultiGPUAllocate(char * unit, size_t factor) {
         }
         std::cout << "succesfully rounded to 0x" << std::hex << res.roundedSize << " bytes" << std::endl;
 
-        res = MemMapManager::RequestAllocate(pInfo, sock_fd, 1024, res.roundedSize);
+        res = MemMapManager::RequestAllocate(pInfo, sock_fd, nullptr, 1024, res.roundedSize);
         if (res.status != STATUSCODE_ACK) {
             panic("MemMapManager::RequestRegister failed");
         }
@@ -174,7 +174,7 @@ void test_Allocate(void) {
                 printf("Failed to get rounded allocation size");
             }
 
-            res =  MemMapManager::RequestAllocate(pInfo, sock_fd, 1024, res.roundedSize);
+            res =  MemMapManager::RequestAllocate(pInfo, sock_fd, nullptr, 1024, res.roundedSize);
             if(res.status != STATUSCODE_ACK) {
                 std::cout << res.status << std::endl;
                 printf("Failed to RequestAllocate M3");
@@ -252,7 +252,7 @@ void test_Echo(int rep) {
             // res = MemMapManager::Request(sock_fd, req, &server_addr);
             // res = MemMapManager::RequestRoundedAllocationSize(pInfo, sock_fd, 1024);
             // std::cout << "RequestAllocate call #" << i << std::endl;
-            res = MemMapManager::RequestAllocate(pInfo, sock_fd, 1024, nbytes);
+            res = MemMapManager::RequestAllocate(pInfo, sock_fd, nullptr, 1024, nbytes);
             if (res.status != STATUSCODE_ACK) {
                 printf("Echo failed at rep  = %d\n", rep);
                 printf("Response is: \n");
