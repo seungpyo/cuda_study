@@ -178,14 +178,26 @@ void test_Allocate(void) {
 
 }
 
+#define TEST_ALLOCATE
 
 int main(int argc, char *argv[]) {
-        if(argc != 3) {
-            printf("Usage: [%s] <unit> <Number of unit> \n", argv[0]);
-            exit(EXIT_SUCCESS);
-        }
 
-        
-        test_MultiGPUAllocate(argv[1], (size_t) atoi(argv[2]));
-        return 0;
+#ifdef TEST_SINGLETON
+    TEST_SINGLETON();
+#endif /* TEST_SINGLETON */
+
+#ifdef TEST_ALLOCATE
+    test_Allocate();
+#endif /* TEST_GPUALLOCATE */
+    
+    
+#ifdef TEST_MULTIGPUALLOCATE           
+    if(argc != 3) {
+        printf("Usage: [%s] <unit> <Number of unit> \n", argv[0]);
+        exit(EXIT_SUCCESS);
+    }
+    test_MultiGPUAllocate(argv[1], (size_t) atoi(argv[2]));
+#endif /* TEST_MULTIGPUALLOCATE */            
+
+    return 0;
 }

@@ -118,8 +118,9 @@ class MemMapRequest {
         }
         MemMapCmd cmd;
         ProcessInfo src;
-        size_t size, alignment;
         shareable_handle_t shareableHandle;
+        std::string memId;
+        size_t size, alignment;
         ProcessInfo importSrc;
 };
 
@@ -135,6 +136,7 @@ class MemMapResponse {
         MemMapStatusCode status;
         ProcessInfo dst;
         shareable_handle_t shareableHandle;
+        std::string memId;
         size_t roundedSize;
         CUdeviceptr d_ptr;
         uint32_t numShareableHandles;
@@ -142,7 +144,6 @@ class MemMapResponse {
         std::string DebugString() {
             char buf[1024];
             sprintf(buf, "* status code = %d\n", status);
-            sprintf(buf+strlen(buf), "* shareableHandle = %p\n", shareableHandle);
             sprintf(buf+strlen(buf), "* roundedSize = %p\n", roundedSize);
             sprintf(buf+strlen(buf), "* d_ptr = %p\n", d_ptr);
             sprintf(buf+strlen(buf), "* Destination process info\n");

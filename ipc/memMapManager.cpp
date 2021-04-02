@@ -23,7 +23,7 @@ MemMapManager::MemMapManager() {
     for(int i = 0; i < device_count_; ++i) {
         CUUTIL_ERRCHK(cuDeviceGet(&devices_[i], i));
         CUUTIL_ERRCHK(cuDeviceGetName(gpuName, 128, devices_[i]));
-        std::cout << "Device " << devices_[i] << ": " << gpuName << std::endl;
+        std::cout << "* Device " << devices_[i] << ": " << gpuName << std::endl;
     }
     CUUTIL_ERRCHK(cuCtxCreate(&ctx_, 0, devices_[0]));
     
@@ -96,9 +96,8 @@ void MemMapManager::Server() {
                 // MEM_POOL_NUM_ENTRY should be defined in memory pool class definition.
                 // uint32_t numShareableHandles = (req.size + MEM_POOL_NUM_ENTRY - 1) / MEM_POOL_NUM_ENTRY;
                 // For now, we just cut the region into half.
-                numShareableHandles = 2;
+                numShareableHandles = 1;
                 res.numShareableHandles = numShareableHandles;
-                shHandles.clear();
                 shHandles.resize(numShareableHandles);
                 m3Err = Allocate(req.src, req.alignment, req.size, shHandles, allocHandles);
                 if (m3Err != M3INTERNAL_OK) {
@@ -121,6 +120,7 @@ void MemMapManager::Server() {
         }
 
         if (req.cmd == CMD_ALLOCATE) {
+            res.memId = req.memId;
             for(auto sh : shHandles) {
                 res.shareableHandle = sh;
                 if (sendShareableHandle(ipc_sock_fd_, &client_addr, res.shareableHandle) < 0) {
@@ -168,21 +168,11 @@ M3InternalErrorType MemMapManager::Register(ProcessInfo &pInfo) {
         CUUTIL_ERRCHK(cuDeviceCanAccessPeer(&a2b, pInfo.device, subscriber.device));
         CUUTIL_ERRCHK(cuDeviceCanAccessPeer(&b2a, subscriber.device, pInfo.device));
             
-        char name1[128];
-        char name2[128];
-        CUUTIL_ERRCHK(cuDeviceGetName(name1, 128, pInfo.device));
-        CUUTIL_ERRCHK(cuDeviceGetName(name2, 128, subscriber.device));
-        printf("Connecting GPU %d : %s and GPU %d : %s...\n", pInfo.device, name1, subscriber.device, name2);
-        printf("a->b: %c, b->a: %c\n", a2b?'O':'X', b2a?'O':'X');
-
         if (a2b && b2a) {
-            printf("MemMapManager::Register: Device %d accesses Device %d.\n", pInfo.device, subscriber.device);
             cuCtxSetCurrent(pInfo.ctx);
             cuCtxEnablePeerAccess(subscriber.ctx, 0);
             cuCtxSetCurrent(subscriber.ctx);
             cuCtxEnablePeerAccess(pInfo.ctx, 0);
-        } else {
-            printf("MemMapManager::Register: Device %d can not access Device %d.\n", pInfo.device, subscriber.device);
         }
     }
 
@@ -236,17 +226,6 @@ MemMapResponse MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd, s
 
     sem_post(sem);
     sem_close(sem);
-
-    // Map into local VA space.
-    /*
-    CUmemAccessDesc accessDescriptors[2];
-    for(int i = 0; i < 2; ++i) {
-        accessDescriptors[i].location.type = CU_MEM_LOCATION_TYPE_DEVICE;
-        // accessDescriptors[i].location.id = pInfo.device_ordinal;
-        accessDescriptors[i].location.id = i;
-        accessDescriptors[i].flags = CU_MEM_ACCESS_FLAGS_PROT_READWRITE;
-    }
-    */
     
     CUmemAccessDesc accessDescriptor;
     accessDescriptor.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
@@ -259,11 +238,6 @@ MemMapResponse MemMapManager::RequestAllocate(ProcessInfo &pInfo, int sock_fd, s
 
     size_t totMem;
     CUUTIL_ERRCHK(cuDeviceTotalMem(&totMem, 0));
-    std::cout << "Total memory = " << totMem << ", while requested memory = " << req.size;
-    if (totMem <= req.size) {
-        std::cout << " (OVERFLOW)";
-    }
-    std::cout << std::endl;
 
     assert(res.numShareableHandles > 0);
     size_t chunkSize = req.size / res.numShareableHandles;
@@ -318,7 +292,9 @@ M3InternalErrorType MemMapManager::Allocate(ProcessInfo &pInfo, size_t alignment
     prop.type = CU_MEM_ALLOCATION_TYPE_PINNED;
     prop.location.type = CU_MEM_LOCATION_TYPE_DEVICE;
     // Use GPU 0 as Memory server device, for now.
-    prop.location.id = devices_[0];
+    // Since I don't have NVLINK-supported environment now,
+    // I'll just set pInfo.device = 0 in child process.
+    prop.location.id = pInfo.device;
     prop.requestedHandleTypes = CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR;
 
     uint32_t num_handles = shHandle.size();
@@ -326,16 +302,7 @@ M3InternalErrorType MemMapManager::Allocate(ProcessInfo &pInfo, size_t alignment
     size_t chunk_size = GetRoundedAllocationSize(num_bytes / num_handles);
     assert(num_bytes % chunk_size == 0);
 
-
-    printf("Allocate: cuMemCreate arguments\n");
-    printf("* allocHandle = 0x%x\n", allocHandle);
-    printf("* chunk_size  = 0x%llx\n", chunk_size);
-
-    
     for(int i = 0; i < num_handles; ++i) {
-        prop.location.id = 1;
-        // prop.location.id = devices_[i % devices_.size()];
-        std::cout << "cuMemCreate @ device " << prop.location.id << std::endl;
         CUUTIL_ERRCHK( cuMemCreate(&allocHandle[i], chunk_size, &prop, 0) );
         CUUTIL_ERRCHK( cuMemExportToShareableHandle((void *)&shHandle[i], allocHandle[i], CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR, 0) );
     }

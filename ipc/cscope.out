@@ -1,4 +1,4 @@
-cscope 15 $HOME/cuda_study/ipc               0001757002
+cscope 15 $HOME/cuda_study/ipc               0001758075
 	@Common/GL/freeglut.h
 
 1 #iâdeà 
@@ -214698,26 +214698,10 @@ pid
 ();
 
 49 
-deviû_Üdš®
- = 
-_deviû_Üdš®
-;
-
-50 
-	`CUUTIL_ERRCHK
-(
-	`cuDeviûG‘
-(&
-deviû
-, 
-deviû_Üdš®
-));
-
-51 
 	}
 }
 
-53 
+52 
 	$ProûssInfo
 (cÚ¡ 
 ProûssInfo
@@ -214725,41 +214709,73 @@ ProûssInfo
 pInfo
 ) {
 
-54 ià(
+53 ià(
 this
  !ğ&
 pInfo
 )
 
-56 
+55 
 pid
  = 
 pInfo
 .pid;
 
-57 
+56 
 deviû_Üdš®
  = 
 pInfo
 .device_ordinal;
 
-58 
+57 
 deviû
  = 
 pInfo
 .device;
 
-59 
+58 
 ùx
  = 
 pInfo
 .ctx;
 
-61 
+60 
 	}
 }
 
+62 
+	$S‘CÚ‹xt
+(
+CUcÚ‹xt
+ &
+_ùx
+) {
+
 63 
+ùx
+ = 
+_ùx
+;
+
+64 
+	`CUUTIL_ERRCHK
+Ğ
+	`cuCtxG‘Deviû
+(&
+deviû
+) );
+
+66 
+deviû_Üdš®
+ = 
+deviû
+;
+
+67 
+	}
+}
+
+69 
 boŞ
  
 	gİ”©Ü
@@ -214769,7 +214785,7 @@ ProûssInfo
 Ùh”
 ) const {
 
-64 
+70 
 boŞ
  
 »t
@@ -214777,7 +214793,7 @@ boŞ
 Œue
 ;
 
-65 
+71 
 	g»t
  = 
 »t
@@ -214787,11 +214803,11 @@ pid
 Ùh”
 .pid);
 
-66  
+72  
 	g»t
 ;
 
-69 
+75 
 	g¡d
 ::
 ¡ršg
@@ -214799,11 +214815,11 @@ pid
 	$Add»ssSŒšg
 () {
 
-70 
+76 
 buf
 [1024];
 
-71 
+77 
 	`¥rštf
 (
 buf
@@ -214811,7 +214827,7 @@ buf
 pid
 );
 
-72 
+78 
 ¡d
 ::
 ¡ršg
@@ -214821,15 +214837,15 @@ pid
 buf
 );
 
-73  
+79  
 s
 ;
 
-74 
+80 
 	}
 }
 
-76 
+82 
 	g¡d
 ::
 ¡ršg
@@ -214837,39 +214853,49 @@ s
 	$DebugSŒšg
 () {
 
-77 
+83 
 buf
 [1024];
 
-78 
+84 
 	`¥rštf
 (
 buf
-, "pid = %d\n", 
++
+	`¡¾’
+(buf), "ProcessInfo:\n");
+
+85 
+	`¥rštf
+(
+buf
++
+	`¡¾’
+(buf), "*…id = %d\n", 
 pid
 );
 
-79 
+86 
 	`¥rštf
 (
 buf
 +
 	`¡¾’
-(buf), "deviû = %d\n", 
+(buf), "* deviû = %d\n", 
 deviû
 );
 
-80 
+87 
 	`¥rštf
 (
 buf
 +
 	`¡¾’
-(buf), "deviû_Üdš® = %d\n", 
+(buf), "* deviû_Üdš® = %d\n", 
 deviû_Üdš®
 );
 
-81 
+88 
 ¡d
 ::
 ¡ršg
@@ -214879,79 +214905,79 @@ deviû_Üdš®
 buf
 );
 
-82  
+89  
 s
 ;
 
-83 
+90 
 	}
 }
 
-86 
+93 
 	eMemM­Cmd
  {
 
-87 
+94 
 	mCMD_INVALID
 ,
 
-88 
+95 
 	mCMD_HALT
 ,
 
-89 
+96 
 	mCMD_REGISTER
 ,
 
-90 
+97 
 	mCMD_DEREGISTER
 ,
 
-91 
+98 
 	mCMD_ALLOCATE
 ,
 
-92 
+99 
 	mCMD_DEALLOCATE
 ,
 
-93 
+100 
 	mCMD_IMPORT
 ,
 
-94 
+101 
 	mCMD_GETROUNDEDALLOCATIONSIZE
 
 
-97 
+104 
 	eMemM­StusCode
  {
 
-98 
+105 
 	mSTATUSCODE_INVALID
 ,
 
-99 
+106 
 	mSTATUSCODE_ACK
 ,
 
-100 
+107 
 	mSTATUSCODE_NYI
 ,
 
-101 
+108 
 	mSTATUSCODE_SOCKERR
 
 
-104 şas 
+111 şas 
 	cMemM­Reque¡
  {
 
-105 
+112 
 	mpublic
 :
 
-106 
+113 
 	$MemM­Reque¡
 (è: 
 	$MemM­Reque¡
@@ -214959,7 +214985,7 @@ s
 CMD_INVALID
 ) {}
 
-107 
+114 
 	$MemM­Reque¡
 (
 MemM­Cmd
@@ -214967,37 +214993,37 @@ MemM­Cmd
 _cmd
 ) {
 
-108 
+115 
 cmd
  = 
 _cmd
 ;
 
-109 
+116 
 size
  = 0;
 
-110 
+117 
 ®ignm’t
  = 0;
 
-111 
+118 
 	}
 }
 
-112 
+119 
 MemM­Cmd
  
 	gcmd
 ;
 
-113 
+120 
 ProûssInfo
  
 	g¤c
 ;
 
-114 
+121 
 size_t
  
 	gsize
@@ -215005,27 +215031,27 @@ size_t
 	g®ignm’t
 ;
 
-115 
+122 
 sh¬—bË_hªdË_t
  
 	gsh¬—bËHªdË
 ;
 
-116 
+123 
 ProûssInfo
  
 	gimpÜtSrc
 ;
 
-119 şas 
+126 şas 
 	cMemM­Re¥Ú£
  {
 
-120 
+127 
 	mpublic
 :
 
-121 
+128 
 	$MemM­Re¥Ú£
 (è: 
 	$MemM­Re¥Ú£
@@ -215033,7 +215059,7 @@ ProûssInfo
 STATUSCODE_INVALID
 ) {}
 
-122 
+129 
 	$MemM­Re¥Ú£
 (
 MemM­StusCode
@@ -215041,13 +215067,13 @@ MemM­StusCode
 _¡©us
 ) {
 
-123 
+130 
 ¡©us
  = 
 _¡©us
 ;
 
-124 
+131 
 sh¬—bËHªdË
  = (
 sh¬—bË_hªdË_t
@@ -215055,11 +215081,11 @@ sh¬—bË_hªdË_t
 nuÎ±r
 ;
 
-125 
+132 
 roundedSize
  = 0;
 
-126 
+133 
 d_±r
  = (
 CUdeviû±r
@@ -215067,47 +215093,47 @@ CUdeviû±r
 nuÎ±r
 ;
 
-127 
+134 
 	}
 }
 
-128 
+135 
 MemM­StusCode
  
 	g¡©us
 ;
 
-129 
+136 
 ProûssInfo
  
 	gd¡
 ;
 
-130 
+137 
 sh¬—bË_hªdË_t
  
 	gsh¬—bËHªdË
 ;
 
-131 
+138 
 size_t
  
 	groundedSize
 ;
 
-132 
+139 
 CUdeviû±r
  
 	gd_±r
 ;
 
-133 
+140 
 ušt32_t
  
 	gnumSh¬—bËHªdËs
 ;
 
-135 
+142 
 	g¡d
 ::
 ¡ršg
@@ -215115,11 +215141,11 @@ ušt32_t
 	$DebugSŒšg
 () {
 
-136 
+143 
 buf
 [1024];
 
-137 
+144 
 	`¥rštf
 (
 buf
@@ -215127,7 +215153,7 @@ buf
 ¡©us
 );
 
-138 
+145 
 	`¥rštf
 (
 buf
@@ -215137,7 +215163,7 @@ buf
 sh¬—bËHªdË
 );
 
-139 
+146 
 	`¥rštf
 (
 buf
@@ -215147,7 +215173,7 @@ buf
 roundedSize
 );
 
-140 
+147 
 	`¥rštf
 (
 buf
@@ -215157,7 +215183,7 @@ buf
 d_±r
 );
 
-141 
+148 
 	`¥rštf
 (
 buf
@@ -215165,7 +215191,7 @@ buf
 	`¡¾’
 (buf), "* Destination…rocess info\n");
 
-142 
+149 
 	`¥rštf
 (
 buf
@@ -215179,7 +215205,7 @@ d¡
 	`c_¡r
 ());
 
-143 
+150 
 ¡d
 ::
 ¡ršg
@@ -215189,33 +215215,33 @@ d¡
 buf
 );
 
-144  
+151  
 s
 ;
 
-145 
+152 
 	}
 }
 
-148 şas 
+155 şas 
 	cMemM­Mªag”
  {
 
-149 
+156 
 	mpublic
 :
 
-150 ~
+157 ~
 MemM­Mªag”
 ();
 
-151 
+158 
 MemM­Mªag”
 * 
 	$In¡ªû
 () {
 
-152 
+159 
 ¡d
 ::
 	`ÿÎ_Úû
@@ -215223,7 +215249,7 @@ MemM­Mªag”
 sšgËtÚFÏg_
 , [](){
 
-153 
+160 
 š¡ªû_
  = 
 Ãw
@@ -215231,11 +215257,11 @@ sšgËtÚFÏg_
 	`MemM­Mªag”
 ();
 
-155  
+162  
 š¡ªû_
 ;
 
-158 
+165 
 MemM­Re¥Ú£
  
 	`Reque¡
@@ -215251,7 +215277,7 @@ sockaddr_un
 »mÙe_addr
 );
 
-159 
+166 
 MemM­Re¥Ú£
  
 	`Reque¡Regi¡”
@@ -215263,7 +215289,7 @@ pInfo
 sock_fd
 );
 
-160 
+167 
 MemM­Re¥Ú£
  
 	`Reque¡AÎoÿ‹
@@ -215281,7 +215307,7 @@ size_t
 num_by‹s
 );
 
-161 
+168 
 MemM­Re¥Ú£
  
 	`Reque¡DeAÎoÿ‹
@@ -215297,7 +215323,7 @@ sh¬—bË_hªdË_t
 shHªdË
 );
 
-162 
+169 
 MemM­Re¥Ú£
  
 	`Reque¡RoundedAÎoÿtiÚSize
@@ -215313,7 +215339,7 @@ size_t
 num_by‹s
 );
 
-164 
+171 
 ¡d
 ::
 ¡ršg
@@ -215321,7 +215347,7 @@ num_by‹s
 	$DebugSŒšg
 () const;
 
-165 
+172 
 ¡d
 ::
 ¡ršg
@@ -215333,7 +215359,7 @@ num_by‹s
 	}
 }
 
-166 
+173 
 	g¡d
 ::
 ¡ršg
@@ -215345,7 +215371,7 @@ num_by‹s
 	}
 }
 
-167 
+174 
 CUcÚ‹xt
  
 	$ùx
@@ -215355,31 +215381,31 @@ CUcÚ‹xt
 	}
 }
 
-169 cÚ¡ 
+176 cÚ¡ 
 	gÇme
 [128];
 
-170 cÚ¡ 
+177 cÚ¡ 
 	g’dpoštName
 [128];
 
-171 cÚ¡ 
+178 cÚ¡ 
 	gb¬r›rName
 [128];
 
-175 
+182 
 	g´iv©e
 :
 
-176 
+183 
 MemM­Mªag”
 ();
 
-177 
+184 
 S”v”
 ();
 
-179 
+186 
 M3IÁ”ÇlE¼ÜTy³
  
 Regi¡”
@@ -215389,7 +215415,7 @@ ProûssInfo
 pInfo
 );
 
-180 
+187 
 M3IÁ”ÇlE¼ÜTy³
  
 AÎoÿ‹
@@ -215417,7 +215443,7 @@ CUmemG’”icAÎoÿtiÚHªdË
 ®locHªdË
 );
 
-181 
+188 
 M3IÁ”ÇlE¼ÜTy³
  
 DeAÎoÿ‹
@@ -215431,7 +215457,7 @@ sh¬—bË_hªdË_t
 shHªdË
 );
 
-182 
+189 
 size_t
  
 G‘RoundedAÎoÿtiÚSize
@@ -215439,13 +215465,13 @@ G‘RoundedAÎoÿtiÚSize
 num_by‹s
 );
 
-184 
+191 
 MemM­Mªag”
  * 
 	gš¡ªû_
 ;
 
-185 
+192 
 	g¡d
 ::
 Úû_æag
@@ -215453,7 +215479,7 @@ MemM­Mªag”
 sšgËtÚFÏg_
 ;
 
-187 
+194 
 	g¡d
 ::
 veùÜ
@@ -215463,21 +215489,21 @@ CUdeviû
 deviûs_
 ;
 
-188 
+195 
 	gdeviû_couÁ_
 ;
 
-189 
+196 
 CUcÚ‹xt
  
 	gùx_
 ;
 
-191 
+198 
 	gc_sock_fd_
 ;
 
-192 
+199 
 	g¡d
 ::
 veùÜ
@@ -215487,23 +215513,23 @@ ProûssInfo
 subsüib”s_
 ;
 
-196 
+203 
 sockaddr_un
  
 	g£rv”_addr
  = {
 
-197 
+204 
 AF_UNIX
 ,
 
-201 
+208 
 ·nic
 (cÚ¡ * 
 msg
 );
 
-202 
+209 
 £ndSh¬—bËHªdË
 (
 sock_fd
@@ -215517,7 +215543,7 @@ sh¬—bË_hªdË_t
 shHªdË
 );
 
-203 
+210 
 »cvSh¬—bËHªdË
 (
 sock_fd
@@ -220921,15 +220947,31 @@ i
 MAX_DEVICES
 ) {
 
-498 
+498 
+dName
+[128];
+
+499 
+	`checkCudaE¼Üs
+(
+	`cuDeviûG‘Name
+(
+dName
+, 128, 
+i
+));
+
+500 
 	`´štf
 (
 
-501 
+503 
 i
+, 
+dName
 );
 
-505 
+507 
 i
  = 0; i < 
 ùxs
@@ -220937,7 +220979,7 @@ i
 	`size
 (); ++i) {
 
-506 
+508 
 	`checkCudaE¼Üs
 (
 	`cuCtxDe¡roy
@@ -220947,33 +220989,33 @@ i
 i
 ]));
 
-509 ià(
+511 ià(
 Åroûs£s
  == 0) {
 
-510 
+512 
 	`´štf
 ("No CUDA devices support IPC\n");
 
-511 
+513 
 	`ex™
 (
 EXIT_WAIVED
 );
 
-513 
+515 
 shm
 ->
 Åroûs£s
  =‚processes;
 
-515 
+517 
 fœ¡S–eùedDeviû
  = 
 £ËùedDeviûs
 [0];
 
-517 
+519 
 ¡d
 ::
 veùÜ
@@ -220985,7 +221027,7 @@ Sh¬—bËHªdË
 Åroûs£s
 );
 
-518 
+520 
 ¡d
 ::
 veùÜ
@@ -220997,7 +221039,7 @@ CUmemG’”icAÎoÿtiÚHªdË
 Åroûs£s
 );
 
-522 
+524 
 	`memM­AÎoÿ‹AndExpÜtMemÜy
 (
 fœ¡S–eùedDeviû
@@ -221005,27 +221047,27 @@ fœ¡S–eùedDeviû
 DATA_BUF_SIZE
 ,
 
-523 
+525 
 ®loÿtiÚHªdËs
 , 
 shHªdËs
 );
 
-526 
+528 
 i
  = 0; i < 
 Åroûs£s
 ; i++) {
 
-527 
+529 
 devIdx
 [10];
 
-528 
+530 
 ´ocIdx
 [10];
 
-529 *cÚ¡ 
+531 *cÚ¡ 
 ¬gs
 [] = {
 ­p
@@ -221037,13 +221079,13 @@ devIdx
 NULL
 };
 
-530 
+532 
 Proûss
  
 ´oûss
 ;
 
-532 
+534 
 	`SPRINTF
 (
 devIdx
@@ -221053,7 +221095,7 @@ devIdx
 i
 ]);
 
-533 
+535 
 	`SPRINTF
 (
 ´ocIdx
@@ -221061,7 +221103,7 @@ i
 i
 );
 
-535 ià(
+537 ià(
 	`¥awnProûss
 (&
 ´oûss
@@ -221071,17 +221113,17 @@ i
 ¬gs
 )) {
 
-536 
+538 
 	`´štf
 ("Failedo create…rocess\n");
 
-537 
+539 
 	`ex™
 (
 EXIT_FAILURE
 );
 
-540 
+542 
 ´oûs£s
 .
 	`push_back
@@ -221089,7 +221131,7 @@ EXIT_FAILURE
 ´oûss
 );
 
-543 
+545 
 	`b¬r›rWa™
 (&
 shm
@@ -221101,7 +221143,7 @@ b¬r›r
 Åroûs£s
  + 1));
 
-545 
+547 
 cHªdË
  *
 cP¬’tHªdË
@@ -221109,7 +221151,7 @@ b¬r›r
 NULL
 ;
 
-546 
+548 
 	`checkIpcE¼Üs
 (
 	`cC»©eSock‘
@@ -221121,11 +221163,11 @@ NULL
 ´oûs£s
 ));
 
-547 
+549 
 	`checkIpcE¼Üs
 (
 
-548 
+550 
 	`cS’dSh¬—bËHªdËs
 (
 cP¬’tHªdË
@@ -221135,13 +221177,13 @@ shHªdËs
 ´oûs£s
 ));
 
-551 
+553 
 i
  = 0; i < 
 Åroûs£s
 ; i++) {
 
-552 
+554 
 	`checkIpcE¼Üs
 (
 	`cClo£Sh¬—bËHªdË
@@ -221151,7 +221193,7 @@ shHªdËs
 i
 ]));
 
-556 
+558 
 i
  = 0; i < 
 ´oûs£s
@@ -221159,7 +221201,7 @@ i
 	`size
 (); i++) {
 
-557 ià(
+559 ià(
 	`wa™Proûss
 (&
 ´oûs£s
@@ -221169,25 +221211,25 @@ i
 EXIT_SUCCESS
 ) {
 
-558 
+560 
 	`´štf
 ("Proûs %d faed!\n", 
 i
 );
 
-559 
+561 
 	`ex™
 (
 EXIT_FAILURE
 );
 
-563 
+565 
 i
  = 0; i < 
 Åroûs£s
 ; i++) {
 
-564 
+566 
 	`checkCudaE¼Üs
 (
 	`cuMemR–—£
@@ -221197,7 +221239,7 @@ i
 i
 ]));
 
-567 
+569 
 	`checkIpcE¼Üs
 (
 	`cClo£Sock‘
@@ -221205,17 +221247,17 @@ i
 cP¬’tHªdË
 ));
 
-568 
+570 
 	`sh¬edMemÜyClo£
 (&
 šfo
 );
 
-569 
+571 
 	}
 }
 
-572 
+574 
 	$maš
 (
 ¬gc
@@ -221223,7 +221265,7 @@ i
 ¬gv
 ) {
 
-573 #ià
+575 #ià
 	`defšed
 (
 __¬m__
@@ -221231,31 +221273,31 @@ __¬m__
 __¯rch64__
 )
 
-574 
+576 
 	`´štf
 ("Not supported on ARM\n");
 
-575  
+577  
 EXIT_WAIVED
 ;
 
-578 
+580 
 	`checkCudaE¼Üs
 (
 	`cuIn™
 (0));
 
-580 ià(
+582 ià(
 ¬gc
  == 1) {
 
-581 
+583 
 	`·»ÁProûss
 (
 ¬gv
 [0]);
 
-583 
+585 
 	`chdProûss
 (
 	`©oi
@@ -221263,11 +221305,11 @@ EXIT_WAIVED
 ¬gv
 [1]),‡toi(argv[2]),‡rgv);
 
-585  
+587  
 EXIT_SUCCESS
 ;
 
-587 
+589 
 	}
 }
 
@@ -223616,6 +223658,32 @@ sun_·th
 ("MemMapManager::MemMapManager: Binding IPC server socket failed");
 
 47 
+ProûssInfo
+ 
+£rv”Proûss
+;
+
+48 
+£rv”Proûss
+.
+	`S‘CÚ‹xt
+(
+ùx_
+);
+
+49 ià(
+	`Regi¡”
+(
+£rv”Proûss
+è!ğ
+M3INTERNAL_OK
+) {
+
+50 
+	`·nic
+("Server…rocess failedo„egister itself\n");
+
+53 
 £m_t
  * 
 £m
@@ -223633,13 +223701,13 @@ S_IRUSR
 S_IWUSR
 , 0);
 
-48 ià(
+54 ià(
 £m
  =ğ
 SEM_FAILED
 ) {
 
-49 
+55 
 ¡d
 ::
 cout
@@ -223651,53 +223719,37 @@ b¬r›rName
 ’dl
 ;
 
-50 
+56 
 	`·nic
 ("MemMapManager: Failedo open semaphore");
 
-52 
-¡d
-::
-cout
- << "£rv”…o¡šg..." << std::
-’dl
-;
-
-53 
+58 
 	`£m_po¡
 (
 £m
 );
 
-54 
-¡d
-::
-cout
- << "£rv”…o¡ed " << std::
-’dl
-;
-
-55 
+59 
 	`£m_şo£
 (
 £m
 );
 
-57 
+61 
 	`S”v”
 ();
 
-59 
+63 
 	}
 }
 
-61 
+65 
 	gMemM­Mªag”
 ::
 	$S”v”
 () {
 
-63 
+67 
 boŞ
  
 h®t
@@ -223705,13 +223757,13 @@ h®t
 çl£
 ;
 
-64 
+68 
 M3IÁ”ÇlE¼ÜTy³
  
 m3E¼
 ;
 
-65 
+69 
 ¡d
 ::
 veùÜ
@@ -223721,7 +223773,7 @@ CUmemG’”icAÎoÿtiÚHªdË
 ®locHªdËs
 ;
 
-66 
+70 
 ¡d
 ::
 veùÜ
@@ -223731,35 +223783,35 @@ sh¬—bË_hªdË_t
 shHªdËs
 ;
 
-67 
+71 
 ušt32_t
  
 numSh¬—bËHªdËs
 ;
 
-70 !
+74 !
 h®t
 ) {
 
-71 
+75 
 MemM­Reque¡
  
 »q
 ;
 
-72 
+76 
 MemM­Re¥Ú£
  
 »s
 ;
 
-73 
+77 
 sockaddr_un
  
 ş›Á_addr
 ;
 
-74 
+78 
 sockËn_t
  
 ş›Á_addr_Ën
@@ -223767,7 +223819,7 @@ sockËn_t
 ş›Á_addr
 );
 
-75 ià(
+79 ià(
 	`»cväom
 (
 c_sock_fd_
@@ -223781,11 +223833,11 @@ sockaddr
 ş›Á_addr_Ën
 ) < 0) {
 
-76 
+80 
 	`·nic
 ("MemMapManager::MemMapManager: failedo„eceive IPC message");
 
-78 
+82 
 »s
 .
 d¡
@@ -223795,32 +223847,14 @@ d¡
 ¤c
 ;
 
-79 
+83 
 »q
 .
 cmd
 ) {
 
-80 
-CMD_HALT
-:
-
-81 
-»s
-.
-¡©us
- = 
-STATUSCODE_ACK
-;
-
-82 
-h®t
- = 
-Œue
-;
-
 84 
-CMD_REGISTER
+CMD_HALT
 :
 
 85 
@@ -223832,18 +223866,16 @@ STATUSCODE_ACK
 ;
 
 86 
-	`Regi¡”
-(
-»s
-.
-d¡
-);
+h®t
+ = 
+Œue
+;
 
 88 
-CMD_ALLOCATE
+CMD_REGISTER
 :
 
-91 
+89 
 »s
 .
 ¡©us
@@ -223851,23 +223883,37 @@ CMD_ALLOCATE
 STATUSCODE_ACK
 ;
 
-95 
-numSh¬—bËHªdËs
- = 2;
+90 
+	`Regi¡”
+(
+»s
+.
+d¡
+);
 
-96 
+92 
+CMD_ALLOCATE
+:
+
+95 
+»s
+.
+¡©us
+ = 
+STATUSCODE_ACK
+;
+
+99 
+numSh¬—bËHªdËs
+ = 1;
+
+100 
 »s
 .
 numSh¬—bËHªdËs
  =‚umShareableHandles;
 
-97 
-shHªdËs
-.
-	`ş—r
-();
-
-98 
+101 
 shHªdËs
 .
 	`»size
@@ -223875,7 +223921,7 @@ shHªdËs
 numSh¬—bËHªdËs
 );
 
-99 
+102 
 m3E¼
  = 
 	`AÎoÿ‹
@@ -223893,27 +223939,27 @@ shHªdËs
 ®locHªdËs
 );
 
-100 ià(
+103 ià(
 m3E¼
  !ğ
 M3INTERNAL_OK
 ) {
 
-101 
+104 
 	`´štf
 ("M3 IÁ”ÇÈE¼Ü Cod%d\n", 
 m3E¼
 );
 
-102 
+105 
 	`·nic
 ("Server failedo Allocate()");
 
-105 
+108 
 CMD_GETROUNDEDALLOCATIONSIZE
 :
 
-106 
+109 
 »s
 .
 ¡©us
@@ -223921,7 +223967,7 @@ CMD_GETROUNDEDALLOCATIONSIZE
 STATUSCODE_ACK
 ;
 
-107 
+110 
 »s
 .
 roundedSize
@@ -223933,7 +223979,7 @@ roundedSize
 size
 );
 
-110 
+113 
 »s
 .
 ¡©us
@@ -223941,7 +223987,7 @@ size
 STATUSCODE_NYI
 ;
 
-114 ià(
+118 ià(
 	`£ndto
 (
 c_sock_fd_
@@ -223953,11 +223999,11 @@ sockaddr
 ş›Á_addr
 , (client_addr)) < 0) {
 
-115 
+119 
 	`·nic
 ("MemMapManager::MemMapManager: failedo send IPC message");
 
-118 ià(
+122 ià(
 »q
 .
 cmd
@@ -223965,13 +224011,13 @@ cmd
 CMD_ALLOCATE
 ) {
 
-119 autØ
+123 autØ
 sh
  : 
 shHªdËs
 ) {
 
-120 
+124 
 »s
 .
 sh¬—bËHªdË
@@ -223979,7 +224025,7 @@ sh¬—bËHªdË
 sh
 ;
 
-121 ià(
+125 ià(
 	`£ndSh¬—bËHªdË
 (
 c_sock_fd_
@@ -223991,25 +224037,25 @@ sh
 sh¬—bËHªdË
 ) < 0) {
 
-122 
+126 
 	`·nic
 ("MemMapManager::MemMapManager: failedo send„es.shsareableHandle");
 
-129 
+133 
 	}
 }
 
-132 
+136 
 	gMemM­Mªag”
 ::~
 	$MemM­Mªag”
 () {
 
-133 
+137 
 b¬r›rToRemove
 [128] = "/dev/shm/sem.";
 
-134 
+138 
 	`¡rÿt
 (
 b¬r›rToRemove
@@ -224019,19 +224065,19 @@ MemM­Mªag”
 b¬r›rName
 );
 
-135 
+139 
 	`uÆšk
 (
 b¬r›rToRemove
 );
 
-137 
+141 
 	`şo£
 (
 c_sock_fd_
 );
 
-138 
+142 
 	`uÆšk
 (
 MemM­Mªag”
@@ -224039,11 +224085,11 @@ MemM­Mªag”
 ’dpoštName
 );
 
-140 
+144 
 	}
 }
 
-143 
+147 
 MemM­Re¥Ú£
  
 	gMemM­Mªag”
@@ -224057,13 +224103,13 @@ pInfo
 sock_fd
 ) {
 
-145 
+149 
 MemM­Reque¡
  
 »q
 ;
 
-146 
+150 
 »q
 .
 ¤c
@@ -224071,7 +224117,7 @@ MemM­Reque¡
 pInfo
 ;
 
-147 
+151 
 »q
 .
 cmd
@@ -224079,7 +224125,7 @@ cmd
 CMD_REGISTER
 ;
 
-148 
+152 
 MemM­Re¥Ú£
  
 »s
@@ -224095,15 +224141,15 @@ sock_fd
 £rv”_addr
 );
 
-149  
+153  
 »s
 ;
 
-151 
+155 
 	}
 }
 
-153 
+157 
 M3IÁ”ÇlE¼ÜTy³
  
 	gMemM­Mªag”
@@ -224115,7 +224161,7 @@ ProûssInfo
 pInfo
 ) {
 
-155 autØ
+159 autØ
 ´oûssI‹¿tÜ
  = 
 ¡d
@@ -224131,7 +224177,7 @@ subsüib”s_
 pInfo
 );
 
-156 ià(
+160 ià(
 ´oûssI‹¿tÜ
  !ğ
 subsüib”s_
@@ -224139,11 +224185,163 @@ subsüib”s_
 	`’d
 ()) {
 
-158  
+162  
 M3INTERNAL_DUPLICATE_REGISTER
 ;
 
-160 
+165 autØ
+subsüib”
+ : 
+subsüib”s_
+) {
+
+166 
+a2b
+, 
+b2a
+;
+
+167 
+	`CUUTIL_ERRCHK
+(
+	`cuDeviûCªAcûssP“r
+(&
+a2b
+, 
+pInfo
+.
+deviû
+, 
+subsüib”
+.device));
+
+168 
+	`CUUTIL_ERRCHK
+(
+	`cuDeviûCªAcûssP“r
+(&
+b2a
+, 
+subsüib”
+.
+deviû
+, 
+pInfo
+.device));
+
+170 
+Çme1
+[128];
+
+171 
+Çme2
+[128];
+
+172 
+	`CUUTIL_ERRCHK
+(
+	`cuDeviûG‘Name
+(
+Çme1
+, 128, 
+pInfo
+.
+deviû
+));
+
+173 
+	`CUUTIL_ERRCHK
+(
+	`cuDeviûG‘Name
+(
+Çme2
+, 128, 
+subsüib”
+.
+deviû
+));
+
+174 
+	`´štf
+("CÚÃùšg GPU %d : % ªd GPU %d : %s...\n", 
+pInfo
+.
+deviû
+, 
+Çme1
+, 
+subsüib”
+.deviû, 
+Çme2
+);
+
+175 
+	`´štf
+("a->b: %c, b->a: %c\n", 
+a2b
+?'O':'X', 
+b2a
+?'O':'X');
+
+177 ià(
+a2b
+ && 
+b2a
+) {
+
+178 
+	`´štf
+("MemM­Mªag”::Regi¡”: Deviû %d‡cûs£ Deviû %d.\n", 
+pInfo
+.
+deviû
+, 
+subsüib”
+.device);
+
+179 
+	`cuCtxS‘Cu¼’t
+(
+pInfo
+.
+ùx
+);
+
+180 
+	`cuCtxEÇbËP“rAcûss
+(
+subsüib”
+.
+ùx
+, 0);
+
+181 
+	`cuCtxS‘Cu¼’t
+(
+subsüib”
+.
+ùx
+);
+
+182 
+	`cuCtxEÇbËP“rAcûss
+(
+pInfo
+.
+ùx
+, 0);
+
+184 
+	`´štf
+("MemM­Mªag”::Regi¡”: Deviû %d cª‚Ù‡cûs Deviû %d.\n", 
+pInfo
+.
+deviû
+, 
+subsüib”
+.device);
+
+188 
 subsüib”s_
 .
 	`push_back
@@ -224151,15 +224349,15 @@ subsüib”s_
 pInfo
 );
 
-161  
+189  
 M3INTERNAL_OK
 ;
 
-162 
+190 
 	}
 }
 
-164 
+192 
 MemM­Re¥Ú£
  
 	gMemM­Mªag”
@@ -224179,13 +224377,13 @@ size_t
 num_by‹s
 ) {
 
-168 
+196 
 MemM­Reque¡
  
 »q
 ;
 
-169 
+197 
 »q
 .
 ¤c
@@ -224193,7 +224391,7 @@ MemM­Reque¡
 pInfo
 ;
 
-170 
+198 
 »q
 .
 cmd
@@ -224201,13 +224399,13 @@ cmd
 CMD_ALLOCATE
 ;
 
-171 
+199 
 »q
 .
 ®ignm’t
  = 1024;
 
-172 
+200 
 »q
 .
 size
@@ -224215,13 +224413,13 @@ size
 num_by‹s
 ;
 
-174 
+202 
 MemM­Re¥Ú£
  
 »s
 ;
 
-175 
+203 
 »s
 .
 ¡©us
@@ -224229,11 +224427,11 @@ MemM­Re¥Ú£
 STATUSCODE_ACK
 ;
 
-177 
+205 
 shHªdËCouÁ
  = 0;
 
-178 
+206 
 ¡d
 ::
 veùÜ
@@ -224243,13 +224441,13 @@ sh¬—bË_hªdË_t
 shHªdËs
 ;
 
-180 
+208 
 £m_t
  * 
 £m
 ;
 
-181 
+209 
 £m
  = 
 	`£m_İ’
@@ -224265,39 +224463,23 @@ S_IRUSR
 S_IWUSR
 , 0);
 
-182 ià(
+210 ià(
 £m
  =ğ
 SEM_FAILED
 ) {
 
-183 
+211 
 	`·nic
 ("Request: Failedo open semaphore");
 
-185 
-¡d
-::
-cout
- << "®loÿ‹ wa™šg..." << std::
-’dl
-;
-
-186 
+213 
 	`£m_wa™
 (
 £m
 );
 
-187 
-¡d
-::
-cout
- << "®loÿ‹ uÆocked" << std::
-’dl
-;
-
-190 
+216 
 sockËn_t
  
 £rv”_addr_Ën
@@ -224307,7 +224489,7 @@ sockËn_t
 £rv”_addr
 );
 
-192 ià(
+218 ià(
 	`£ndto
 (
 sock_fd
@@ -224321,19 +224503,11 @@ sockaddr
 £rv”_addr_Ën
 ) < 0) {
 
-193 
+219 
 	`³¼Ü
 ("Request sendto() call failure");
 
-194 
-	`´štf
-("Œ›dØİ’ %s\n", 
-£rv”_addr
-.
-sun_·th
-);
-
-195 
+220 
 »s
 .
 ¡©us
@@ -224341,7 +224515,7 @@ sun_·th
 STATUSCODE_SOCKERR
 ;
 
-199 ià(
+223 ià(
 	`»cväom
 (
 sock_fd
@@ -224355,11 +224529,11 @@ sockaddr
 £rv”_addr_Ën
 ) < 0) {
 
-200 
+224 
 	`³¼Ü
 ("MemMapManager::RequestRegister failedo„eceive RequestRegister„esult");
 
-201 
+225 
 »s
 .
 ¡©us
@@ -224367,19 +224541,7 @@ sockaddr
 STATUSCODE_SOCKERR
 ;
 
-204 
-¡d
-::
-cout
- << "»s.numSh¬—bËHªdË ğ" << 
-»s
-.
-numSh¬—bËHªdËs
- << std::
-’dl
-;
-
-207 ià(
+229 ià(
 	`»cvSh¬—bËHªdË
 (
 sock_fd
@@ -224389,11 +224551,11 @@ sock_fd
 sh¬—bËHªdË
 ) < 0) {
 
-208 
+230 
 	`³¼Ü
 ("MemMapManager::RequestRegister failedo„eceive RequestAllocate„esult");
 
-209 
+231 
 »s
 .
 ¡©us
@@ -224401,7 +224563,7 @@ sh¬—bËHªdË
 STATUSCODE_SOCKERR
 ;
 
-211 
+233 
 shHªdËs
 .
 	`push_back
@@ -224411,7 +224573,7 @@ shHªdËs
 sh¬—bËHªdË
 );
 
-212 } ++
+234 } ++
 shHªdËCouÁ
  < 
 »s
@@ -224419,41 +224581,25 @@ shHªdËCouÁ
 numSh¬—bËHªdËs
 );
 
-215 
-¡d
-::
-cout
- << "®loøpo¡šg" << std::
-’dl
-;
-
-216 
+236 
 	`£m_po¡
 (
 £m
 );
 
-217 
-¡d
-::
-cout
- << "®loøpo¡ed" << std::
-’dl
-;
-
-218 
+237 
 	`£m_şo£
 (
 £m
 );
 
-222 
+250 
 CUmemAcûssDesc
  
 acûssDesütÜ
 ;
 
-223 
+251 
 acûssDesütÜ
 .
 loÿtiÚ
@@ -224463,7 +224609,7 @@ ty³
 CU_MEM_LOCATION_TYPE_DEVICE
 ;
 
-224 
+252 
 acûssDesütÜ
 .
 loÿtiÚ
@@ -224472,10 +224618,10 @@ id
  = 
 pInfo
 .
-deviû_Üdš®
+deviû
 ;
 
-225 
+253 
 acûssDesütÜ
 .
 æags
@@ -224483,13 +224629,13 @@ acûssDesütÜ
 CU_MEM_ACCESS_FLAGS_PROT_READWRITE
 ;
 
-227 
+255 
 CUmemG’”icAÎoÿtiÚHªdË
  
 ®locHªdË
 ;
 
-228 
+256 
 »s
 .
 d_±r
@@ -224499,7 +224645,7 @@ CUdeviû±r
 nuÎ±r
 ;
 
-229 
+257 
 	`CUUTIL_ERRCHK
 (
 	`cuMemAdd»ssRe£rve
@@ -224515,13 +224661,13 @@ size
 ®ignm’t
 , 0, 0));
 
-231 
+259 
 size_t
  
 tÙMem
 ;
 
-232 
+260 
 	`CUUTIL_ERRCHK
 (
 	`cuDeviûTÙ®Mem
@@ -224529,21 +224675,7 @@ tÙMem
 tÙMem
 , 0));
 
-233 
-¡d
-::
-cout
- << "Ov”æow: " << (
-tÙMem
- <ğ
-»q
-.
-size
-è<< std::
-’dl
-;
-
-234 
+261 
 ¡d
 ::
 cout
@@ -224553,11 +224685,39 @@ tÙMem
 »q
 .
 size
+;
+
+262 ià(
+tÙMem
+ <ğ
+»q
+.
+size
+) {
+
+263 
+¡d
+::
+cout
+ << " (OVERFLOW)";
+
+265 
+¡d
+::
+cout
  << std::
 ’dl
 ;
 
-236 
+267 
+	`as£¹
+(
+»s
+.
+numSh¬—bËHªdËs
+ > 0);
+
+268 
 size_t
  
 chunkSize
@@ -224571,17 +224731,7 @@ size
 numSh¬—bËHªdËs
 ;
 
-237 
-¡d
-::
-cout
- << "chunkSize" << 
-chunkSize
- << std::
-’dl
-;
-
-238 
+270 
 i
  = 0; i < 
 »s
@@ -224589,13 +224739,13 @@ i
 numSh¬—bËHªdËs
 ; ++i) {
 
-240 
+271 
 	`CUUTIL_ERRCHK
 (
 	`cuMemImpÜtFromSh¬—bËHªdË
 (
 
-241 &
+272 &
 ®locHªdË
 , (*)(
 ušŒ_t
@@ -224607,7 +224757,7 @@ i
 CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR
 ));
 
-243 
+273 
 	`CUUTIL_ERRCHK
 (
 	`cuMemM­
@@ -224623,7 +224773,7 @@ chunkSize
 ®locHªdË
 , 0));
 
-244 
+274 
 	`CUUTIL_ERRCHK
 (
 	`cuMemR–—£
@@ -224631,7 +224781,7 @@ chunkSize
 ®locHªdË
 ));
 
-245 
+275 
 	`şo£
 (
 shHªdËs
@@ -224639,7 +224789,7 @@ shHªdËs
 i
 ]);
 
-249 
+278 
 	`CUUTIL_ERRCHK
 (
 	`cuMemS‘Acûss
@@ -224655,15 +224805,15 @@ size
 acûssDesütÜ
 , 1));
 
-250  
+279  
 »s
 ;
 
-252 
+281 
 	}
 }
 
-254 
+283 
 MemM­Re¥Ú£
  
 	gMemM­Mªag”
@@ -224681,13 +224831,13 @@ size_t
 num_by‹s
 ) {
 
-256 
+285 
 MemM­Reque¡
  
 »q
 ;
 
-257 
+286 
 »q
 .
 ¤c
@@ -224695,7 +224845,7 @@ MemM­Reque¡
 pInfo
 ;
 
-258 
+287 
 »q
 .
 cmd
@@ -224703,7 +224853,7 @@ cmd
 CMD_GETROUNDEDALLOCATIONSIZE
 ;
 
-259 
+288 
 »q
 .
 size
@@ -224711,7 +224861,7 @@ size
 num_by‹s
 ;
 
-260 
+289 
 MemM­Re¥Ú£
  
 »s
@@ -224727,15 +224877,15 @@ sock_fd
 £rv”_addr
 );
 
-261  
+290  
 »s
 ;
 
-263 
+292 
 	}
 }
 
-265 
+294 
 size_t
  
 	gMemM­Mªag”
@@ -224747,13 +224897,13 @@ size_t
 num_by‹s
 ) {
 
-267 
+296 
 CUmemAÎoÿtiÚPrİ
  
 ´İ
  = {};
 
-268 
+297 
 ´İ
 .
 ty³
@@ -224761,7 +224911,7 @@ ty³
 CU_MEM_ALLOCATION_TYPE_PINNED
 ;
 
-269 
+298 
 ´İ
 .
 loÿtiÚ
@@ -224771,7 +224921,7 @@ ty³
 CU_MEM_LOCATION_TYPE_DEVICE
 ;
 
-271 
+300 
 ´İ
 .
 loÿtiÚ
@@ -224781,7 +224931,7 @@ id
 deviûs_
 [0];
 
-272 
+301 
 ´İ
 .
 »que¡edHªdËTy³s
@@ -224789,19 +224939,19 @@ deviûs_
 CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR
 ;
 
-273 
+302 
 size_t
  
 g¿nuÏr™y
  = 0;
 
-274 
+303 
 	`CUUTIL_ERRCHK
 (
 	`cuMemG‘AÎoÿtiÚG¿nuÏr™y
 (
 
-275 &
+304 &
 g¿nuÏr™y
 , &
 ´İ
@@ -224809,27 +224959,27 @@ g¿nuÏr™y
 CU_MEM_ALLOC_GRANULARITY_MINIMUM
 ));
 
-276 ià(
+305 ià(
 num_by‹s
  % 
 g¿nuÏr™y
 ) {
 
-277 
+306 
 num_by‹s
  +ğ(
 g¿nuÏr™y
  - (num_bytes % granularity));
 
-280  
+309  
 num_by‹s
 ;
 
-282 
+311 
 	}
 }
 
-285 
+314 
 M3IÁ”ÇlE¼ÜTy³
  
 	gMemM­Mªag”
@@ -224859,13 +225009,13 @@ CUmemG’”icAÎoÿtiÚHªdË
 ®locHªdË
 ) {
 
-287 
+316 
 CUmemAÎoÿtiÚPrİ
  
 ´İ
  = {};
 
-288 
+317 
 	g´İ
 .
 	gty³
@@ -224873,7 +225023,7 @@ CUmemAÎoÿtiÚPrİ
 CU_MEM_ALLOCATION_TYPE_PINNED
 ;
 
-289 
+318 
 	g´İ
 .
 	gloÿtiÚ
@@ -224883,17 +225033,19 @@ CU_MEM_ALLOCATION_TYPE_PINNED
 CU_MEM_LOCATION_TYPE_DEVICE
 ;
 
-291 
+322 
 	g´İ
 .
 	gloÿtiÚ
 .
 	gid
  = 
-deviûs_
-[0];
+pInfo
+.
+deviû
+;
 
-292 
+323 
 	g´İ
 .
 	g»que¡edHªdËTy³s
@@ -224901,7 +225053,7 @@ deviûs_
 CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR
 ;
 
-294 
+325 
 ušt32_t
  
 	gnum_hªdËs
@@ -224911,7 +225063,7 @@ shHªdË
 size
 ();
 
-295 
+326 
 	g®locHªdË
 .
 »size
@@ -224919,7 +225071,7 @@ size
 num_hªdËs
 );
 
-296 
+327 
 size_t
  
 	gchunk_size
@@ -224931,7 +225083,7 @@ num_by‹s
 num_hªdËs
 );
 
-297 
+328 
 as£¹
 (
 num_by‹s
@@ -224939,29 +225091,13 @@ num_by‹s
 chunk_size
  == 0);
 
-300 
-´štf
-("Allocate: cuMemCreate‡rguments\n");
-
-301 
-´štf
-("*‡ÎocHªdË = 0x%x\n", 
-®locHªdË
-);
-
-302 
-´štf
-("* chunk_siz = 0x%Îx\n", 
-chunk_size
-);
-
-305 
+330 
 	gi
  = 0; i < 
 	gnum_hªdËs
 ; ++i) {
 
-306 
+331 
 CUUTIL_ERRCHK
 Ğ
 cuMemC»©e
@@ -224975,7 +225111,7 @@ chunk_size
 ´İ
 , 0) );
 
-307 
+332 
 CUUTIL_ERRCHK
 Ğ
 cuMemExpÜtToSh¬—bËHªdË
@@ -224989,11 +225125,11 @@ i
 CU_MEM_HANDLE_TYPE_POSIX_FILE_DESCRIPTOR
 , 0) );
 
-309  
+334  
 	gM3INTERNAL_OK
 ;
 
-313 
+338 
 MemM­Re¥Ú£
  
 	gMemM­Mªag”
@@ -225011,13 +225147,13 @@ sh¬—bË_hªdË_t
 shHªdË
 ) {
 
-314 
+339 
 MemM­Reque¡
  
 »q
 ;
 
-315 
+340 
 »q
 .
 ¤c
@@ -225025,7 +225161,7 @@ MemM­Reque¡
 pInfo
 ;
 
-316 
+341 
 »q
 .
 cmd
@@ -225033,7 +225169,7 @@ cmd
 CMD_DEALLOCATE
 ;
 
-317 
+342 
 »q
 .
 sh¬—bËHªdË
@@ -225041,13 +225177,13 @@ sh¬—bËHªdË
 shHªdË
 ;
 
-318 
+343 
 MemM­Re¥Ú£
  
 »s
 ;
 
-319 
+344 
 »s
  = 
 	`Reque¡
@@ -225059,15 +225195,15 @@ sock_fd
 £rv”_addr
 );
 
-320  
+345  
 »s
 ;
 
-321 
+346 
 	}
 }
 
-323 
+348 
 M3IÁ”ÇlE¼ÜTy³
  
 	gMemM­Mªag”
@@ -225083,15 +225219,15 @@ sh¬—bË_hªdË_t
 shHªdË
 ) {
 
-324  
+349  
 M3INTERNAL_NYI
 ;
 
-325 
+350 
 	}
 }
 
-329 
+354 
 	g¡d
 ::
 ¡ršg
@@ -225101,7 +225237,7 @@ MemM­Mªag”
 	$DebugSŒšg
 () const {
 
-331 
+356 
 ¡d
 ::
 ¡ršg
@@ -225109,13 +225245,13 @@ MemM­Mªag”
 dbg
 ;
 
-332 
+357 
 dbg
 .
 	`­³nd
 ("name: ");
 
-333 
+358 
 dbg
 .
 	`­³nd
@@ -225125,13 +225261,13 @@ MemM­Mªag”
 Çme
 );
 
-334 
+359 
 dbg
 .
 	`­³nd
 (", ipc_name: ");
 
-335 
+360 
 dbg
 .
 	`­³nd
@@ -225141,13 +225277,13 @@ MemM­Mªag”
 ’dpoštName
 );
 
-336 
+361 
 dbg
 .
 	`­³nd
 (", ipc_sock_fd: ");
 
-337 
+362 
 dbg
 .
 	`­³nd
@@ -225159,15 +225295,15 @@ dbg
 c_sock_fd_
 ));
 
-339  
+364  
 dbg
 ;
 
-341 
+366 
 	}
 }
 
-344 
+369 
 MemM­Re¥Ú£
  
 	gMemM­Mªag”
@@ -225185,13 +225321,13 @@ sockaddr_un
 »mÙe_addr
 ) {
 
-346 
+371 
 £m_t
  * 
 £m
 ;
 
-347 
+372 
 £m
  = 
 	`£m_İ’
@@ -225207,39 +225343,29 @@ S_IRUSR
 S_IWUSR
 , 0);
 
-348 ià(
+373 ià(
 £m
  =ğ
 SEM_FAILED
 ) {
 
-349 
+374 
 	`·nic
 ("Request: Failedo open semaphore");
 
-351 
-¡d
-::
-cout
- << "»que¡ wa™šg..." << std::
-’dl
-;
+376 
+	`£m_wa™
+(
+£m
+);
 
-353 
-¡d
-::
-cout
- << "»que¡ uÆocked" << std::
-’dl
-;
-
-356 
+379 
 MemM­Re¥Ú£
  
 »s
 ;
 
-357 
+380 
 »s
 .
 ¡©us
@@ -225247,13 +225373,13 @@ MemM­Re¥Ú£
 STATUSCODE_ACK
 ;
 
-359 
+382 
 ušt32_t
  
 shHªdËCÁ
  = 0;
 
-360 
+383 
 ¡d
 ::
 veùÜ
@@ -225263,7 +225389,7 @@ sh¬—bË_hªdË_t
 shHªdËs
 ;
 
-362 
+385 
 sockËn_t
  
 »mÙe_addr_Ën
@@ -225273,7 +225399,7 @@ sockËn_t
 »mÙe_addr
 );
 
-363 ià(
+386 ià(
 	`£ndto
 (
 sock_fd
@@ -225287,11 +225413,11 @@ sockaddr
 »mÙe_addr_Ën
 ) < 0) {
 
-364 
+387 
 	`³¼Ü
 ("Request sendto() call failure");
 
-365 
+388 
 	`´štf
 ("Œ›dØİ’ %s\n", 
 »mÙe_addr
@@ -225299,7 +225425,7 @@ sockaddr
 sun_·th
 );
 
-366 
+389 
 »s
 .
 ¡©us
@@ -225307,7 +225433,7 @@ sun_·th
 STATUSCODE_SOCKERR
 ;
 
-368 ià(
+391 ià(
 	`»cväom
 (
 sock_fd
@@ -225321,11 +225447,11 @@ sockaddr
 »mÙe_addr_Ën
 ) < 0) {
 
-369 
+392 
 	`³¼Ü
 ("MemMapManager::RequestRegister failedo„eceive RequestRegister„esult");
 
-370 
+393 
 »s
 .
 ¡©us
@@ -225333,65 +225459,49 @@ sockaddr
 STATUSCODE_SOCKERR
 ;
 
-373 
-¡d
-::
-cout
- << "»que¡…o¡šg..." << std::
-’dl
-;
-
-374 
+396 
 	`£m_po¡
 (
 £m
 );
 
-375 
-¡d
-::
-cout
- << "»que¡…o¡ed" << std::
-’dl
-;
-
-376 
+397 
 	`£m_şo£
 (
 £m
 );
 
-377  
+398  
 »s
 ;
 
-379 
+400 
 	}
 }
 
-383 
+404 
 	$·nic
 (cÚ¡ * 
 msg
 ) {
 
-385 
+406 
 	`³¼Ü
 (
 msg
 );
 
-386 
+407 
 	`ex™
 (
 EXIT_FAILURE
 );
 
-388 
+409 
 	}
 }
 
-390 
+411 
 	$£ndSh¬—bËHªdË
 (
 sock_fd
@@ -225405,47 +225515,47 @@ sh¬—bË_hªdË_t
 shHªdË
 ) {
 
-392 
+413 
 msghdr
  
 msg
 ;
 
-393 
+414 
 iovec
  
 iov
 [1];
 
-396 
+417 
 cmsghdr
  
 cm
 ;
 
-397 
+418 
 cÚŒŞ
 [
 	`CMSG_SPACE
 (())];
 
-398 } 
+419 } 
 cÚŒŞ_un
 ;
 
-400 
+421 
 cmsghdr
  *
 cm±r
 ;
 
-401 
+422 
 ssize_t
  
 »adResuÉ
 ;
 
-402 
+423 
 sockËn_t
  
 Ën
@@ -225453,7 +225563,7 @@ sockËn_t
 ş›Á_addr
 );
 
-404 
+425 
 msg
 .
 msg_cÚŒŞ
@@ -225463,7 +225573,7 @@ cÚŒŞ_un
 cÚŒŞ
 ;
 
-405 
+426 
 msg
 .
 msg_cÚŒŞËn
@@ -225473,7 +225583,7 @@ cÚŒŞ_un
 cÚŒŞ
 );
 
-407 
+428 
 cm±r
  = 
 	`CMSG_FIRSTHDR
@@ -225481,7 +225591,7 @@ cm±r
 msg
 );
 
-408 
+429 
 cm±r
 ->
 cmsg_Ën
@@ -225489,7 +225599,7 @@ cmsg_Ën
 	`CMSG_LEN
 (());
 
-409 
+430 
 cm±r
 ->
 cmsg_Ëv–
@@ -225497,7 +225607,7 @@ cmsg_Ëv–
 SOL_SOCKET
 ;
 
-410 
+431 
 cm±r
 ->
 cmsg_ty³
@@ -225505,7 +225615,7 @@ cmsg_ty³
 SCM_RIGHTS
 ;
 
-412 
+433 
 	`memmove
 (
 	`CMSG_DATA
@@ -225515,7 +225625,7 @@ cm±r
 shHªdË
 , (shHandle));
 
-414 
+435 
 msg
 .
 msg_Çme
@@ -225523,7 +225633,7 @@ msg_Çme
 ş›Á_addr
 ;
 
-415 
+436 
 msg
 .
 msg_Çm–’
@@ -225531,19 +225641,19 @@ msg_Çm–’
 sockaddr_un
 );
 
-417 
+438 
 iov
 [0].
 iov_ba£
  = (*)"";
 
-418 
+439 
 iov
 [0].
 iov_Ën
  = 1;
 
-419 
+440 
 msg
 .
 msg_iov
@@ -225551,13 +225661,13 @@ msg_iov
 iov
 ;
 
-420 
+441 
 msg
 .
 msg_iovËn
  = 1;
 
-422 
+443 
 ssize_t
  
 £ndResuÉ
@@ -225569,19 +225679,19 @@ sock_fd
 msg
 , 0);
 
-423 ià(
+444 ià(
 £ndResuÉ
  <= 0) {
 
-424 
+445 
 	`³¼Ü
 ("IPC failure: Sending data over socket failed");
 
-429 
+450 
 	}
 }
 
-431 
+452 
 	$»cvSh¬—bËHªdË
 (
 sock_fd
@@ -225591,67 +225701,67 @@ sh¬—bË_hªdË_t
 shHªdË
 ) {
 
-432 
+453 
 msghdr
  
 msg
  = {0};
 
-433 
+454 
 iovec
  
 iov
 [1];
 
-434 
+455 
 cmsghdr
  
 cm
 ;
 
-438 
+459 
 cmsghdr
  
 cm
 ;
 
-439 
+460 
 cÚŒŞ
 [
 	`CMSG_SPACE
 (())];
 
-440 } 
+461 } 
 cÚŒŞ_un
 ;
 
-442 
+463 
 cmsghdr
  *
 cm±r
 ;
 
-443 
+464 
 ssize_t
  
 n
 ;
 
-444 
+465 
 »ûivedfd
 ;
 
-445 
+466 
 dummy_bufãr
 [1];
 
-446 
+467 
 ssize_t
  
 £ndResuÉ
 ;
 
-448 
+469 
 msg
 .
 msg_cÚŒŞ
@@ -225661,7 +225771,7 @@ cÚŒŞ_un
 cÚŒŞ
 ;
 
-449 
+470 
 msg
 .
 msg_cÚŒŞËn
@@ -225671,7 +225781,7 @@ cÚŒŞ_un
 cÚŒŞ
 );
 
-451 
+472 
 iov
 [0].
 iov_ba£
@@ -225679,7 +225789,7 @@ iov_ba£
 dummy_bufãr
 ;
 
-452 
+473 
 iov
 [0].
 iov_Ën
@@ -225687,7 +225797,7 @@ iov_Ën
 dummy_bufãr
 );
 
-454 
+475 
 msg
 .
 msg_iov
@@ -225695,13 +225805,13 @@ msg_iov
 iov
 ;
 
-455 
+476 
 msg
 .
 msg_iovËn
  = 1;
 
-457 ià((
+478 ià((
 n
  = 
 	`»cvmsg
@@ -225711,11 +225821,11 @@ sock_fd
 msg
 , 0)) <= 0) {
 
-458 
+479 
 	`³¼Ü
 ("IPC failure: Receiving data over socket failed");
 
-462 ià(((
+483 ià(((
 cm±r
  = 
 	`CMSG_FIRSTHDR
@@ -225725,7 +225835,7 @@ msg
 NULL
 ) &&
 
-463 (
+484 (
 cm±r
 ->
 cmsg_Ën
@@ -225733,7 +225843,7 @@ cmsg_Ën
 	`CMSG_LEN
 (()))) {
 
-464 ià((
+485 ià((
 cm±r
 ->
 cmsg_Ëv–
@@ -225745,7 +225855,7 @@ cmsg_ty³
 SCM_RIGHTS
 )) {
 
-468 
+489 
 	`memmove
 (&
 »ûivedfd
@@ -225755,13 +225865,13 @@ SCM_RIGHTS
 cm±r
 ), (receivedfd));
 
-469 *(*)
+490 *(*)
 shHªdË
  = 
 »ûivedfd
 ;
 
-475 
+496 
 	}
 }
 
@@ -225836,32 +225946,90 @@ pid
 ()) == 0) {
 
 18 
-	`¦“p
-(1);
+¡d
+::
+cout
+ << "ş›Á sË•šg fÜ 5 ms" << std::
+’dl
+;
 
-20 
+19 
+	`u¦“p
+(5 * 1000);
+
+21 
 	`CUUTIL_ERRCHK
 (
 	`cuIn™
 (0));
 
-22 
+23 
+CUcÚ‹xt
+ 
+ùx
+;
+
+24 
+CUdeviû
+ 
+dev
+ = 1;
+
+25 
+	`CUUTIL_ERRCHK
+(
+	`cuCtxC»©e
+(&
+ùx
+, 0, 
+dev
+));
+
+26 
 ProûssInfo
  
 pInfo
 ;
 
-23 
+27 
+pInfo
+.
+	`S‘CÚ‹xt
+(
+ùx
+);
+
+29 
+¡d
+::
+cout
+ << "Cl›Á…roûs Info:" << std::
+’dl
+;
+
+30 
+¡d
+::
+cout
+ << 
+pInfo
+.
+	`DebugSŒšg
+(è<< std::
+’dl
+;
+
+32 
 sock_fd
  = 0;
 
-24 
+33 
 sockaddr_un
  
 ş›Á_addr
 ;
 
-25 ià((
+34 ià((
 sock_fd
  = 
 	`sock‘
@@ -225871,17 +226039,17 @@ AF_UNIX
 SOCK_DGRAM
 , 0)) == -1) {
 
-26 
+35 
 	`·nic
 ("MemMapManager::RequestRegister failedo open socket");
 
-28 
+37 
 	`bz”o
 (&
 ş›Á_addr
 , (client_addr));
 
-29 
+38 
 ş›Á_addr
 .
 sun_çmy
@@ -225889,7 +226057,7 @@ sun_çmy
 AF_UNIX
 ;
 
-30 
+39 
 	`¡rıy
 (
 ş›Á_addr
@@ -225903,7 +226071,7 @@ pInfo
 	`c_¡r
 ());
 
-31 ià(
+40 ià(
 	`bšd
 (
 sock_fd
@@ -225915,23 +226083,23 @@ sockaddr
 	`SUN_LEN
 (&client_addr)) < 0) {
 
-32 
+41 
 	`·nic
 ("MemMapManager::RequestRegister failedo bind client socket");
 
-35 
+44 
 MemM­Reque¡
  
 »q
 ;
 
-36 
+45 
 MemM­Re¥Ú£
  
 »s
 ;
 
-38 
+47 
 »s
  = 
 MemM­Mªag”
@@ -225943,7 +226111,7 @@ pInfo
 sock_fd
 );
 
-39 ià(
+48 ià(
 »s
 .
 ¡©us
@@ -225951,11 +226119,11 @@ sock_fd
 STATUSCODE_ACK
 ) {
 
-40 
+49 
 	`·nic
 ("MemMapManager::RequestRegister failed");
 
-42 
+51 
 ¡d
 ::
 cout
@@ -225963,7 +226131,7 @@ cout
 ’dl
 ;
 
-44 
+53 
 »s
  = 
 MemM­Mªag”
@@ -225977,7 +226145,7 @@ sock_fd
 num_by‹s
 );
 
-45 ià(
+54 ià(
 »s
 .
 ¡©us
@@ -225985,11 +226153,11 @@ num_by‹s
 STATUSCODE_ACK
 ) {
 
-46 
+55 
 	`·nic
 ("MemMapManager::RequestRegister failed");
 
-48 
+57 
 ¡d
 ::
 cout
@@ -226003,7 +226171,7 @@ roundedSize
 ’dl
 ;
 
-50 
+59 
 »s
  = 
 MemM­Mªag”
@@ -226017,7 +226185,7 @@ sock_fd
 roundedSize
 );
 
-51 ià(
+60 ià(
 »s
 .
 ¡©us
@@ -226025,11 +226193,11 @@ roundedSize
 STATUSCODE_ACK
 ) {
 
-52 
+61 
 	`·nic
 ("MemMapManager::RequestRegister failed");
 
-54 
+63 
 ¡d
 ::
 cout
@@ -226041,7 +226209,7 @@ d_±r
 ’dl
 ;
 
-58 
+65 
 »q
 .
 ¤c
@@ -226049,7 +226217,7 @@ d_±r
 pInfo
 ;
 
-59 
+66 
 »q
 .
 cmd
@@ -226057,7 +226225,7 @@ cmd
 CMD_HALT
 ;
 
-60 
+67 
 »s
  = 
 MemM­Mªag”
@@ -226071,7 +226239,7 @@ sock_fd
 £rv”_addr
 );
 
-61 ià(
+68 ià(
 »s
 .
 ¡©us
@@ -226079,11 +226247,11 @@ sock_fd
 STATUSCODE_ACK
 ) {
 
-62 
+69 
 	`·nic
 ("Failedo halt M3 instance");
 
-64 
+71 
 	`uÆšk
 (
 pInfo
@@ -226093,13 +226261,13 @@ pInfo
 	`c_¡r
 ());
 
-69 
+74 
 	`CUUTIL_ERRCHK
 (
 	`cuIn™
 (0));
 
-70 
+75 
 MemM­Mªag”
  *
 m3
@@ -226107,25 +226275,25 @@ m3
 	`In¡ªû
 ();
 
-71 
+76 
 wa™_¡©us
 ;
 
-72 
+77 
 	`wa™
 (&
 wa™_¡©us
 );
 
-74 
+79 
 	}
 }
 
-76 
+81 
 	$‹¡_sšgËtÚ
 () {
 
-77 
+82 
 MemM­Mªag”
  *
 m3
@@ -226133,7 +226301,7 @@ m3
 	`In¡ªû
 ();
 
-78 
+83 
 MemM­Mªag”
  *
 m3_dup
@@ -226141,7 +226309,7 @@ m3_dup
 	`In¡ªû
 ();
 
-79 
+84 
 ¡d
 ::
 cout
@@ -226153,7 +226321,7 @@ m3
 ’dl
 ;
 
-80 
+85 
 ¡d
 ::
 cout
@@ -226165,7 +226333,7 @@ m3_dup
 ’dl
 ;
 
-81 
+86 
 ¡d
 ::
 cout
@@ -226177,45 +226345,45 @@ m3_dup
 ’dl
 ;
 
-82 
+87 
 	}
 }
 
-84 
+89 
 	$‹¡_AÎoÿ‹
 () {
 
-85 
+90 
 pid_t
  
 pid
 ;
 
-86 ià((
+91 ià((
 pid
  = 
 	`fÜk
 ()) == 0) {
 
-87 
+92 
 	`CUUTIL_ERRCHK
 (
 	`cuIn™
 (0));
 
-88 
+93 
 CUcÚ‹xt
  
 ùx
 ;
 
-89 
+94 
 CUdeviû
  
 deviû
 ;
 
-91 
+96 
 CU¡»am
  
 ¡»am_h2d
@@ -226223,27 +226391,27 @@ CU¡»am
 ¡»am_d2h
 ;
 
-92 
+97 
 muÉiProûssÜCouÁ
 ;
 
-95 
+100 
 ProûssInfo
  
 pInfo
 ;
 
-98 
+103 
 sock_fd
  = 0;
 
-99 
+104 
 sockaddr_un
  
 ş›Á_addr
 ;
 
-101 ià((
+106 ià((
 sock_fd
  = 
 	`sock‘
@@ -226253,17 +226421,17 @@ AF_UNIX
 SOCK_DGRAM
 , 0)) == -1) {
 
-102 
+107 
 	`·nic
 ("MemMapManager::RequestRegister failedo open socket");
 
-105 
+110 
 	`bz”o
 (&
 ş›Á_addr
 , (client_addr));
 
-106 
+111 
 ş›Á_addr
 .
 sun_çmy
@@ -226271,7 +226439,7 @@ sun_çmy
 AF_UNIX
 ;
 
-107 
+112 
 	`¡rıy
 (
 ş›Á_addr
@@ -226285,7 +226453,7 @@ pInfo
 	`c_¡r
 ());
 
-110 ià(
+115 ià(
 	`bšd
 (
 sock_fd
@@ -226297,17 +226465,17 @@ sockaddr
 	`SUN_LEN
 (&client_addr)) < 0) {
 
-111 
+116 
 	`·nic
 ("MemMapManager::RequestRegister failedo bind client socket");
 
-114 
+119 
 pInfo
 .
 deviû_Üdš®
  = 0;
 
-115 
+120 
 	`CUUTIL_ERRCHK
 (
 	`cuDeviûG‘
@@ -226319,7 +226487,7 @@ deviû
 deviû_Üdš®
 ));
 
-116 
+121 
 	`CUUTIL_ERRCHK
 (
 	`cuCtxC»©e
@@ -226331,13 +226499,13 @@ pInfo
 deviû
 ));
 
-117 
+122 
 MemM­Re¥Ú£
  
 »s
 ;
 
-118 
+123 
 »s
  = 
 MemM­Mªag”
@@ -226349,7 +226517,7 @@ pInfo
 sock_fd
 );
 
-119 if(
+124 if(
 »s
 .
 ¡©us
@@ -226357,11 +226525,11 @@ sock_fd
 STATUSCODE_ACK
 ) {
 
-120 
+125 
 	`·nic
 ("Failedo RequestRegister M3");
 
-122 
+127 
 pInfo
  = 
 »s
@@ -226369,7 +226537,7 @@ pInfo
 d¡
 ;
 
-125 
+130 
 	`CUUTIL_ERRCHK
 (
 	`cuSŒ—mC»©e
@@ -226379,7 +226547,7 @@ d¡
 CU_STREAM_NON_BLOCKING
 ));
 
-126 
+131 
 	`CUUTIL_ERRCHK
 (
 	`cuSŒ—mC»©e
@@ -226389,7 +226557,7 @@ CU_STREAM_NON_BLOCKING
 CU_STREAM_NON_BLOCKING
 ));
 
-128 
+133 
 ¡d
 ::
 veùÜ
@@ -226399,7 +226567,7 @@ CUdeviû±r
 d_±r
 ;
 
-129 
+134 
 boŞ
  
 ·ss
@@ -226407,17 +226575,17 @@ boŞ
 Œue
 ;
 
-130 
+135 
 t
  = 0; < 10; ++t) {
 
-131 
+136 
 MemM­Re¥Ú£
  
 »s
 ;
 
-132 
+137 
 »s
  = 
 MemM­Mªag”
@@ -226429,7 +226597,7 @@ pInfo
 sock_fd
 , 32*1024);
 
-133 ià(
+138 ià(
 »s
 .
 ¡©us
@@ -226437,11 +226605,11 @@ sock_fd
 STATUSCODE_ACK
 ) {
 
-134 
+139 
 	`·nic
 ("Failedo get„ounded‡llocation size");
 
-136 
+141 
 »s
  = 
 MemM­Mªag”
@@ -226455,7 +226623,7 @@ sock_fd
 roundedSize
 );
 
-137 if(
+142 if(
 »s
 .
 ¡©us
@@ -226463,7 +226631,7 @@ roundedSize
 STATUSCODE_ACK
 ) {
 
-138 
+143 
 ¡d
 ::
 cout
@@ -226475,11 +226643,11 @@ cout
 ’dl
 ;
 
-139 
+144 
 	`·nic
 ("Failedo RequestAllocate M3");
 
-141 
+146 
 d_±r
 .
 	`push_back
@@ -226487,7 +226655,7 @@ d_±r
 »s
 .d_ptr);
 
-142 autØ
+147 autØ
 addr
  = 
 d_±r
@@ -226495,15 +226663,15 @@ d_±r
 t
 ];
 
-143 
+148 
 ‹¡_¡ršg
 [128] = "can you see me?";
 
-144 
+149 
 »cv_¡ršg
 [128];
 
-145 
+150 
 	`CUUTIL_ERRCHK
 (
 	`cuMemıyHtoD
@@ -226513,7 +226681,7 @@ addr
 ‹¡_¡ršg
 , 128));
 
-146 
+151 
 	`CUUTIL_ERRCHK
 (
 	`cuMemıyDtoH
@@ -226523,7 +226691,7 @@ addr
 addr
 , 128));
 
-147 
+152 
 ·ss
  =…as && !
 	`¡rcmp
@@ -226533,15 +226701,15 @@ addr
 »cv_¡ršg
 );
 
-148 ià(!
+153 ià(!
 ·ss
 ) {
 
-152 ià(
+157 ià(
 ·ss
 ) {
 
-153 
+158 
 ¡d
 ::
 cout
@@ -226549,7 +226717,7 @@ cout
 ’dl
 ;
 
-155 
+160 
 ¡d
 ::
 cout
@@ -226557,13 +226725,13 @@ cout
 ’dl
 ;
 
-159 
+164 
 MemM­Reque¡
  
 »q
 ;
 
-160 
+165 
 »q
 .
 ¤c
@@ -226571,7 +226739,7 @@ MemM­Reque¡
 pInfo
 ;
 
-161 
+166 
 »q
 .
 cmd
@@ -226579,7 +226747,7 @@ cmd
 CMD_HALT
 ;
 
-162 
+167 
 »s
  = 
 MemM­Mªag”
@@ -226593,7 +226761,7 @@ sock_fd
 £rv”_addr
 );
 
-163 ià(
+168 ià(
 »s
 .
 ¡©us
@@ -226601,11 +226769,11 @@ sock_fd
 STATUSCODE_ACK
 ) {
 
-164 
+169 
 	`·nic
 ("Failedo halt M3 instance");
 
-166 
+171 
 	`uÆšk
 (
 pInfo
@@ -226615,7 +226783,7 @@ pInfo
 	`c_¡r
 ());
 
-169 
+174 
 MemM­Mªag”
  *
 m3
@@ -226623,21 +226791,27 @@ m3
 	`In¡ªû
 ();
 
-170 
+175 
 wa™_¡©us
 ;
 
-171 
+176 
 	`wa™
 (&
 wa™_¡©us
 );
 
-174 
+179 
 	}
 }
 
-177 
+181 
+	#TEST_ALLOCATE
+
+
+	)
+
+183 
 	$maš
 (
 ¬gc
@@ -226645,23 +226819,43 @@ wa™_¡©us
 ¬gv
 []) {
 
-178 if(
+185 #ifdeà
+TEST_SINGLETON
+
+
+186 
+	`TEST_SINGLETON
+();
+
+189 #ifdeà
+TEST_ALLOCATE
+
+
+190 
+	`‹¡_AÎoÿ‹
+();
+
+194 #ifdeà
+TEST_MULTIGPUALLOCATE
+
+
+195 if(
 ¬gc
  != 3) {
 
-179 
+196 
 	`´štf
-("U§ge: <%s> [un™] [Numb” oàun™] [\n", 
+("U§ge: [%s] <un™> <Numb” oàun™> \n", 
 ¬gv
 [0]);
 
-180 
+197 
 	`ex™
 (
 EXIT_SUCCESS
 );
 
-184 
+199 
 	`‹¡_MuÉiGPUAÎoÿ‹
 (
 ¬gv
@@ -226671,7 +226865,7 @@ size_t
 	`©oi
 (argv[2]));
 
-186 
+203 
 	}
 }
 
