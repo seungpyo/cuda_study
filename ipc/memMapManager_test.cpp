@@ -1,5 +1,41 @@
 #include "MemMapManager.h"
 
+void test_MultiGPUAllocate(char * unit, size_t factor);
+void test_singleton(void);
+void test_Allocate(void);
+void test_Echo(int rep);
+
+#define TEST_ECHO
+
+int main(int argc, char *argv[]) {
+
+#ifdef TEST_SINGLETON
+    test_singleton();
+#endif /* TEST_SINGLETON */
+
+#ifdef TEST_ALLOCATE
+    test_Allocate();
+#endif /* TEST_GPUALLOCATE */
+
+#ifdef TEST_ECHO
+    if (argc != 2) {
+        printf("Usage: [%s] <Number of repetition> \n", argv[0]);
+        exit(EXIT_SUCCESS);
+    }
+    test_Echo(atoi(argv[1]));
+#endif /* TEST_ECHO */
+    
+    
+#ifdef TEST_MULTIGPUALLOCATE           
+    if(argc != 3) {
+    }
+    test_MultiGPUAllocate(argv[1], (size_t) atoi(argv[2]));
+#endif /* TEST_MULTIGPUALLOCATE */            
+
+    return 0;
+}
+
+
 void test_MultiGPUAllocate(char * unit, size_t factor) {
     size_t num_bytes = factor;
     if(!strcmp(unit, "g")) {
@@ -83,11 +119,20 @@ void test_MultiGPUAllocate(char * unit, size_t factor) {
 }
 
 void test_singleton(void) {
-    MemMapManager *m3 = MemMapManager::Instance();
-    MemMapManager *m3_dup = MemMapManager::Instance();
-    std::cout << m3->DebugString() << std::endl;
-    std::cout << m3_dup->DebugString() << std::endl;
-    std::cout << m3 << ", " << m3_dup << std::endl;
+    pid_t pid = fork();
+    if (pid == 0) {
+        sleep(1);
+        struct sockaddr_un client_addr;
+        int sock_fd = ipcOpenAndBindSocket(&client_addr);
+        ProcessInfo pInfo;
+        ipcHaltM3Server(sock_fd, pInfo);
+    } else {
+        MemMapManager *m3 = MemMapManager::Instance();
+        MemMapManager *m3_dup = MemMapManager::Instance();
+        std::cout << m3->DebugString() << std::endl;
+        std::cout << m3_dup->DebugString() << std::endl;
+        std::cout << m3 << ", " << m3_dup << std::endl;
+    }
 }
 
 void test_Allocate(void) {
@@ -106,27 +151,13 @@ void test_Allocate(void) {
         pInfo.SetContext(ctx);
 
         // Open and bind socket to client's unique IPC file.
-        int sock_fd = 0;
         struct sockaddr_un client_addr;
-
-        if ((sock_fd = socket(AF_UNIX, SOCK_DGRAM, 0)) == -1) {
-            panic("MemMapManager::RequestRegister failed to open socket");
-        }
-
-        bzero(&client_addr, sizeof(client_addr));
-        client_addr.sun_family = AF_UNIX;
-        strcpy(client_addr.sun_path, pInfo.AddressString().c_str());
-
-        
-        if (bind(sock_fd, (struct sockaddr *)&client_addr, SUN_LEN(&client_addr)) < 0) {
-            panic("MemMapManager::RequestRegister failed to bind client socket");
-        }
-
+        int sock_fd = ipcOpenAndBindSocket(&client_addr);
         
         MemMapResponse res;
         res = MemMapManager::RequestRegister(pInfo, sock_fd);
-        if(res.status != STATUSCODE_ACK) {
-            panic("Failed to RequestRegister M3");
+        if(res.status != STATUSCODE_ACK && res.status != STATUSCODE_DUPLICATE_REGISTER) {
+            printf("Failed to RequestRegister M3");
         }
         pInfo = res.dst;
 
@@ -140,13 +171,13 @@ void test_Allocate(void) {
             MemMapResponse res;
             res = MemMapManager::RequestRoundedAllocationSize(pInfo, sock_fd, 32*1024);
             if (res.status != STATUSCODE_ACK) {    
-                panic("Failed to get rounded allocation size");
+                printf("Failed to get rounded allocation size");
             }
 
             res =  MemMapManager::RequestAllocate(pInfo, sock_fd, 1024, res.roundedSize);
             if(res.status != STATUSCODE_ACK) {
                 std::cout << res.status << std::endl;
-                panic("Failed to RequestAllocate M3");
+                printf("Failed to RequestAllocate M3");
             }
             d_ptr.push_back(res.d_ptr);
             auto addr = d_ptr[t];
@@ -166,16 +197,7 @@ void test_Allocate(void) {
         }
         
 
-        MemMapRequest req;
-        req.src = pInfo;
-        req.cmd = CMD_HALT;
-        res = MemMapManager::Request(sock_fd, req, &server_addr);
-        if (res.status != STATUSCODE_ACK) {
-            std::cout << "halt status code = " << res.status << std::endl;
-            std::cout << res.DebugString() << std::endl;
-            panic("Failed to halt M3 instance");
-            
-        }
+        
         unlink(pInfo.AddressString().c_str());
     } else {
         // parent process as a demo server.
@@ -220,7 +242,7 @@ void test_Echo(int rep) {
 
         res = MemMapManager::RequestRoundedAllocationSize(pInfo, sock_fd, 1024);
         if (res.status != STATUSCODE_ACK) {
-            std::cout << "Failed to get rounded size" << std::endl;
+            printf("Failed to get rounded size\n");
             exit(EXIT_FAILURE);
         }
         std::cout << "round result = 0x" << std::hex << res.roundedSize << std::endl;
@@ -232,53 +254,18 @@ void test_Echo(int rep) {
             // std::cout << "RequestAllocate call #" << i << std::endl;
             res = MemMapManager::RequestAllocate(pInfo, sock_fd, 1024, nbytes);
             if (res.status != STATUSCODE_ACK) {
-                std::cout << "Echo failed at rep = " << rep << std::endl;
-                std::cout << "Response is:" << std::endl;
+                printf("Echo failed at rep  = %d\n", rep);
+                printf("Response is: \n");
                 std::cout << res.DebugString() << std::endl;
             }
             
         }
 
-        req.cmd = CMD_HALT;
-        res = MemMapManager::Request(sock_fd, req, &server_addr);
-        if (res.status != STATUSCODE_ACK) {
-            std::cout << "Failed to halt M3 server; res.status = " << res.status << std::endl;
-            exit(EXIT_FAILURE);
-        }
+        ipcHaltM3Server(sock_fd, pInfo);
         
     } else {
         MemMapManager * m3 = MemMapManager::Instance();
         int wStat;
         wait(&wStat);
     }
-}
-
-#define TEST_ALLOCATE
-
-int main(int argc, char *argv[]) {
-
-#ifdef TEST_SINGLETON
-    TEST_SINGLETON();
-#endif /* TEST_SINGLETON */
-
-#ifdef TEST_ALLOCATE
-    test_Allocate();
-#endif /* TEST_GPUALLOCATE */
-
-#ifdef TEST_ECHO
-    if (argc != 2) {
-        printf("Usage: [%s] <Number of repetition> \n", argv[0]);
-        exit(EXIT_SUCCESS);
-    }
-    test_Echo(atoi(argv[1]));
-#endif /* TEST_ECHO */
-    
-    
-#ifdef TEST_MULTIGPUALLOCATE           
-    if(argc != 3) {
-    }
-    test_MultiGPUAllocate(argv[1], (size_t) atoi(argv[2]));
-#endif /* TEST_MULTIGPUALLOCATE */            
-
-    return 0;
 }

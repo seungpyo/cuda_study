@@ -48,7 +48,6 @@ class ProcessInfo {
             pid = getpid();
         }
 
-
         ProcessInfo(const ProcessInfo& pInfo) {
             if (this != &pInfo)
             {
@@ -88,6 +87,7 @@ class ProcessInfo {
             std::string s(buf);
             return s;
         }
+
 };
 
 enum MemMapCmd {
@@ -106,7 +106,9 @@ enum MemMapStatusCode {
     STATUSCODE_INVALID,
     STATUSCODE_ACK,
     STATUSCODE_NYI,
-    STATUSCODE_SOCKERR
+    STATUSCODE_SOCKERR,
+    STATUSCODE_DUPLICATE_REGISTER,
+    STATUSCODE_UNKNOWN_ERR
 };
 
 #define MAX_MEMID_LEN 256
@@ -119,6 +121,7 @@ class MemMapRequest {
             size = 0;
             alignment = 0;
         }
+
         MemMapCmd cmd;
         ProcessInfo src;
         shareable_handle_t shareableHandle;
@@ -136,6 +139,7 @@ class MemMapResponse {
             roundedSize = 0;
             d_ptr = (CUdeviceptr)nullptr;
         }
+
         MemMapStatusCode status;
         ProcessInfo dst;
         shareable_handle_t shareableHandle;
@@ -169,53 +173,108 @@ class MemMapManager {
             return instance_;
         }
 
+        // Request() is a generic Request method provided to client.
+        // All requests except RequestAllocate uses Request() internally.
+        // Request() uses sendto() / recvfrom() system call to send and receive messages.
         static MemMapResponse Request(int sock_fd, MemMapRequest req, struct sockaddr_un * remote_addr);
         static MemMapResponse RequestRegister(ProcessInfo &pInfo, int sock_fd);
-        static MemMapResponse RequestAllocate(ProcessInfo &pInfo, int sock_fd, size_t alignment, size_t num_bytes);
         static MemMapResponse RequestDeAllocate(ProcessInfo &pInfo, int sock_fd, shareable_handle_t shHandle);
         static MemMapResponse RequestRoundedAllocationSize(ProcessInfo &pInfo, int sock_fd, size_t num_bytes);
 
+        // RequestAllocate() is a dedicate method to request Allocate() function.
+        // Since shareable handles are UNIX file descriptors of separate process,
+        // we must receive ancillary messages using sendmsg() and recvmsg().
+        static MemMapResponse RequestAllocate(ProcessInfo &pInfo, int sock_fd, size_t alignment, size_t num_bytes);
+
+        // Trivial Getter / Setters.
         std::string DebugString() const;
         std::string Name() { return name; }
         static std::string EndPoint() { return endpointName; }
         CUcontext ctx(void) { return ctx_; }
 
+        // Name of this MemMapManager instance.
         static const char name[128];
+        // Name of the endpoint file.
         static const char endpointName[128];
+        // Name of the semaphore file.
         static const char barrierName[128];
 
-        
-
     private:
+        // Keep constructor private in order to implement singleton pattern.
         MemMapManager();
+
+        // Sever loop.
         void Server();
 
+        // Register() registers ProcessInfo of new client process in M3 server.
+        // If duplicate subscription is detected, Register() does nothing but returns STATUSCODE_DUPLICATE_REGISTER.
         M3InternalErrorType Register(ProcessInfo &pInfo);
+
+        // Allocate() allocates physical memory in GPU using cuMemCreate(), and export shareable handlers.
+        // Allocate() will NOT be called if memory ID is already registered in M3 server.
+        // We assume that client request CMD_GETROUNDEDALLOCATIONSIZE before CMD_ALLOCATE.
+        // Thus, no size rounding is provided in Allocate().
         M3InternalErrorType Allocate(ProcessInfo &pInfo, size_t alignment, size_t num_bytes, std::vector<shareable_handle_t> &shHandle, std::vector<CUmemGenericAllocationHandle> &allocHandle);
+
+        // DeAllocate(): To Be Implemented.
         M3InternalErrorType DeAllocate(ProcessInfo &pInfo, shareable_handle_t shHandle);
+
+        // GetRoundedAllocationSize() rounds num_bytes to the minimum granularity of the GPU device.
+        // User MUST get rounded size using this method.
+        // Otherwise, the behavior of Allocate() is undefined.
         size_t GetRoundedAllocationSize(size_t num_bytes);
 
+        // Singleton members
         static MemMapManager * instance_;
         static std::once_flag singletonFlag_;
 
+        // Cuda settings
+        CUcontext ctx_;
         std::vector<CUdevice> devices_;
         int device_count_;
-        CUcontext ctx_;
 
+        // IPC settings
         int ipc_sock_fd_;
         std::vector<ProcessInfo> subscribers_;
 
+        // Find shareable handle using memory ID, and vice versa.
         std::unordered_map<std::string, shareable_handle_t> memIdToShHandle_;
         std::unordered_map<shareable_handle_t, std::string> shHandletoMemId_;        
 
 
 };
 
+// sockaddr_un for server
 static struct sockaddr_un server_addr = { 
     AF_UNIX,
     "MemMapManager_Server_EndPoint"
 };
 
+// panic() ; You know what it does.
 void panic(const char * msg);
-static int sendShareableHandle(int sock_fd, struct sockaddr_un * client_addr, shareable_handle_t shHandle);
-static int recvShareableHandle(int sock_fd, shareable_handle_t *shHandle);
+
+// Helper functions for IPC features.
+
+// Semaphore locking / unlocking helper functions.
+
+int ipcLockGeneric(int initialValue);
+int ipcLock(void);
+int ipcUnlock(void);
+
+// ipcLockPrivileged() is used only by server, 
+// just to protect server initialization process done in MemMapManager::MemMapManager().
+int ipcLockPrivileged(void);
+
+int ipcOpenAndBindSocket(struct sockaddr_un * local_addr);
+
+// ipcSendShareableHandle() sends multiple shareable handles (UNIX file descriptors) using sendmsg().
+// this function is used by RequestAllocate().
+int ipcSendShareableHandle(int sock_fd, struct sockaddr_un * client_addr, shareable_handle_t shHandle);
+
+// ipcRecvShareableHandle() receives multiple shareable handles (UNIX file descriptors) using recvmsg()
+// this function is used by RequestAllocate().
+int ipcRecvShareableHandle(int sock_fd, shareable_handle_t *shHandle);
+
+// ipcHaltM3Server() halts M3 server.
+// This function is used only for debug purposes, to stop infinite loop.
+void ipcHaltM3Server(int sock_fd, ProcessInfo pInfo);
