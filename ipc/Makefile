@@ -17,3 +17,4 @@ clean:
 	rm pid_*
 	rm /dev/shm/sem.MemMapManager_Server_Barrier
 	rm MemMapManager_Server_EndPoint
+	rm m3shell_ipc

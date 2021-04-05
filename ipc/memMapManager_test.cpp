@@ -221,44 +221,21 @@ void test_Echo(int rep) {
 
         int sock_fd = 0;
         struct sockaddr_un client_addr;
-
-        if ((sock_fd = socket(AF_UNIX, SOCK_DGRAM, 0)) == -1) {
-            panic("MemMapManager::RequestRegister failed to open socket");
-        }
-
         bzero(&client_addr, sizeof(client_addr));
         client_addr.sun_family = AF_UNIX;
         strcpy(client_addr.sun_path, pInfo.AddressString().c_str());
-
-        
-        if (bind(sock_fd, (struct sockaddr *)&client_addr, SUN_LEN(&client_addr)) < 0) {
-            panic("MemMapManager::RequestRegister failed to bind client socket");
-        }
+        sock_fd = ipcOpenAndBindSocket(&client_addr);
 
         MemMapRequest req;
         req.src = pInfo;
         req.cmd = CMD_ECHO;
         MemMapResponse res;
 
-        res = MemMapManager::RequestRoundedAllocationSize(pInfo, sock_fd, 1024);
+        res = MemMapManager::Request(sock_fd, req, &server_addr);
         if (res.status != STATUSCODE_ACK) {
-            printf("Failed to get rounded size\n");
-            exit(EXIT_FAILURE);
-        }
-        std::cout << "round result = 0x" << std::hex << res.roundedSize << std::endl;
-        size_t nbytes = res.roundedSize;
-
-        for(int i = 0; i < rep; ++i) {
-            // res = MemMapManager::Request(sock_fd, req, &server_addr);
-            // res = MemMapManager::RequestRoundedAllocationSize(pInfo, sock_fd, 1024);
-            // std::cout << "RequestAllocate call #" << i << std::endl;
-            res = MemMapManager::RequestAllocate(pInfo, sock_fd, nullptr, 1024, nbytes);
-            if (res.status != STATUSCODE_ACK) {
-                printf("Echo failed at rep  = %d\n", rep);
-                printf("Response is: \n");
-                std::cout << res.DebugString() << std::endl;
-            }
-            
+            printf("Failed to Echo\n");
+        } else {
+            printf("Got echo back\n");
         }
 
         ipcHaltM3Server(sock_fd, pInfo);

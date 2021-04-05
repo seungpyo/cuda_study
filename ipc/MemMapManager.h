@@ -27,6 +27,13 @@
 
 typedef uintptr_t shareable_handle_t;
 
+typedef struct MemoryRegionSt {
+    shareable_handle_t shareableHandle;
+    uintptr_t base;
+    size_t size;
+} MemoryRegion;
+
+
 enum M3InternalErrorType {
     M3INTERNAL_INVALIDCODE,
     M3INTERNAL_NYI,
@@ -239,7 +246,7 @@ class MemMapManager {
         std::vector<ProcessInfo> subscribers_;
 
         // Find shareable handle using memory ID, and vice versa.
-        std::unordered_map<std::string, shareable_handle_t> memIdToShHandle_;
+        std::unordered_map<std::string, MemoryRegion> memIdToMemoryRegion_;
         std::unordered_map<shareable_handle_t, std::string> shHandletoMemId_;        
 
 
