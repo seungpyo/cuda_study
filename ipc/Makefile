@@ -2,7 +2,7 @@ NVCC=/usr/local/cuda-11.2/bin/nvcc
 all: m3shell m3server memMapManager_test
 	
 m3shell:
-	$(NVCC) -g -lcuda -lrt -o m3shell memMapManager.cpp m3client.cpp
+	$(NVCC) -g -lcuda -lrt -o m3shell memMapManager.cpp m3shell.cpp
 
 m3server:
 	$(NVCC) -g -lcuda -lrt -o m3server memMapManager.cpp m3server.cpp

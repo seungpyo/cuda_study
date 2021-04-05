@@ -12,6 +12,10 @@ int main() {
     client_addr.sun_family = AF_UNIX;
     strncpy(client_addr.sun_path, "m3shell_ipc", sizeof(client_addr.sun_path));
 
+    std::vector<std::string> d_memId;
+    std::vector<uintptr_t> d_ptr;
+    std::vector<size_t> d_size;
+
     MemMapRequest req;
     MemMapResponse res;
     char cmd[128];
@@ -68,7 +72,7 @@ int main() {
             uint32_t factor;
             scanf("%u", &factor);
             char unit[8];
-            scanf("%s", &unit);
+            scanf("%s", unit);
 
             size_t num_bytes = factor;
             switch(unit[0]) {
@@ -80,7 +84,7 @@ int main() {
                     num_bytes <<= 10;
                     break;
                 default:
-                    printf("Invalid unit %c!\n", unit);
+                    printf("Invalid unit %s!\n", unit);
                     continue;
             }
             struct sockaddr_un client_addr;
@@ -89,17 +93,51 @@ int main() {
             int sock_fd = ipcOpenAndBindSocket(&client_addr);
             res = MemMapManager::RequestRoundedAllocationSize(pInfo, sock_fd, num_bytes);
             if(res.status != STATUSCODE_ACK) {
-                printf("Failed to round %u bytes.\n", num_bytes);
+                printf("Failed to round %lu bytes.\n", num_bytes);
                 continue;
             }
             num_bytes = res.roundedSize;
             res = MemMapManager::RequestAllocate(pInfo, sock_fd, memId, 1024, num_bytes);
             if(res.status != STATUSCODE_ACK) {
-                printf("Failed to allocate %u bytes.\n", num_bytes);
+                printf("Failed to allocate %lu bytes.\n", num_bytes);
                 continue;
             }
-            printf("Successfully allocated %lu bytes @ [%p : %p].\n", num_bytes, res.d_ptr, res.d_ptr + num_bytes -1);
+            printf("Allocated %lu bytes @ [%p : %p].\n", num_bytes, (char *)res.d_ptr, (char *)res.d_ptr + num_bytes -1);
             close(sock_fd);
+
+            std::string memIdStr = std::string(memId);
+            d_memId.push_back(memIdStr);
+            d_ptr.push_back(res.d_ptr);
+            d_size.push_back(num_bytes);
+        }
+
+        if(!strcmp(cmd, "lsmem")) {
+            printf("List of allocated memory regions\n");
+            for(int i = 0; i < d_ptr.size(); ++i) {
+                printf("[%p : %p]\t%s\n", (char *)d_ptr[i], (char *)d_ptr[i] + d_size[i] - 1, d_memId[i].c_str());
+            }
+        }
+
+        if(!strcmp(cmd, "read")) {
+            CUdeviceptr ptrToRead;
+            scanf("%llx", &ptrToRead);
+            size_t sizeToRead;
+            scanf("%lu", &sizeToRead);
+            char *  buf = new char[sizeToRead];
+            CUUTIL_ERRCHK(cuMemcpyDtoH(buf, ptrToRead, sizeToRead));
+            printf("%.*s", (int)sizeToRead, buf);
+            printf("\n");
+            delete buf;
+        }
+
+        #define MAX_WRITE_LEN 1024*16
+        if(!strcmp(cmd, "write")) {
+            CUdeviceptr ptrToWrite;
+            scanf("%llx", &ptrToWrite);
+            char inputBuf[MAX_WRITE_LEN];
+            scanf("%s", inputBuf);
+            CUUTIL_ERRCHK(cuMemcpyHtoD(ptrToWrite, inputBuf, strlen(inputBuf)));
+            printf("Wrote %lu bytes to %p\n", strlen(inputBuf), (void *)ptrToWrite);
         }
 
     }

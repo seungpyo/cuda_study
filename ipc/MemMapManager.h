@@ -158,10 +158,10 @@ class MemMapResponse {
         std::string DebugString() {
             char buf[1024];
             sprintf(buf+strlen(buf), "* status code = %d\n", status);
-            sprintf(buf+strlen(buf), "* roundedSize = %p\n", roundedSize);
-            sprintf(buf+strlen(buf), "* d_ptr = %p\n", d_ptr);
+            sprintf(buf+strlen(buf), "* roundedSize = %lx\n", roundedSize);
+            sprintf(buf+strlen(buf), "* d_ptr = %p\n", (void *)d_ptr);
             sprintf(buf+strlen(buf), "* numShareableHandles = %u\n", numShareableHandles);
-            sprintf(buf+strlen(buf), "* shareableHandle = %p\n", shareableHandle);
+            sprintf(buf+strlen(buf), "* shareableHandle = %lx\n", shareableHandle);
             sprintf(buf+strlen(buf), "* memId = %s\n", memId);
             sprintf(buf+strlen(buf), "* Destination process info\n");
             sprintf(buf+strlen(buf), "* %s", dst.DebugString().c_str());

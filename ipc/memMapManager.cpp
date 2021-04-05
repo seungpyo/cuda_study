@@ -127,7 +127,6 @@ void MemMapManager::Server() {
                     }
                     for(auto& sh : shHandles) {
                         memIdToMemoryRegion_.insert(std::make_pair(memIdStr, MemoryRegionInitializer));
-                        // memIdToMemoryRegion_[req.memId] = MemoryRegionInitializer;
                         memIdToMemoryRegion_[memIdStr].shareableHandle = sh;
                         memIdToMemoryRegion_[memIdStr].size = req.size;
                         shHandletoMemId_[sh] = memIdStr;
